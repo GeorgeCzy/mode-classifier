@@ -26,6 +26,12 @@ Fast pip setup for the full modeling stack:
 pip install -r requirements.txt
 ```
 
+For Weights & Biases tracking:
+
+```bash
+wandb login
+```
+
 Conda is recommended when CUDA/PyTorch versions matter:
 
 ```bash
@@ -93,7 +99,7 @@ The TF-IDF baseline does not need GPU, but embedding generation and embedding-he
 
 ```bash
 python modeling/scripts/create_splits.py
-python modeling/scripts/train_tfidf_logreg.py
+python modeling/scripts/train_tfidf_logreg.py --use-wandb
 ```
 
 Artifacts are written to:

@@ -13,6 +13,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from sklearn.pipeline import Pipeline
 
+from wandb_utils import add_wandb_args, init_wandb
+
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_SPLIT_DIR = ROOT / "modeling" / "data" / "splits"
@@ -26,6 +28,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-features", type=int, default=5000)
     parser.add_argument("--ngram-max", type=int, default=2)
     parser.add_argument("--c", type=float, default=1.0)
+    add_wandb_args(parser)
     return parser.parse_args()
 
 
@@ -97,6 +100,19 @@ def main() -> None:
     train_ids, train_texts, train_labels = read_split(args.split_dir / "train.csv")
     val_ids, val_texts, val_labels = read_split(args.split_dir / "val.csv")
     test_ids, test_texts, test_labels = read_split(args.split_dir / "test.csv")
+    run = init_wandb(
+        args,
+        config={
+            "architecture": "TF-IDF + LogisticRegression",
+            "dataset": str(args.split_dir),
+            "max_features": args.max_features,
+            "ngram_max": args.ngram_max,
+            "c": args.c,
+            "train_rows": len(train_texts),
+            "val_rows": len(val_texts),
+            "test_rows": len(test_texts),
+        },
+    )
 
     model = Pipeline(
         steps=[
@@ -128,6 +144,14 @@ def main() -> None:
         "val": evaluate(model, val_texts, val_labels, split_name="val"),
         "test": evaluate(model, test_texts, test_labels, split_name="test"),
     }
+    if run:
+        run.log(
+            {
+                "train/accuracy": metrics["train"]["accuracy"],
+                "val/accuracy": metrics["val"]["accuracy"],
+                "test/accuracy": metrics["test"]["accuracy"],
+            }
+        )
     (args.output_dir / "metrics.json").write_text(
         json.dumps(metrics, indent=2, ensure_ascii=True) + "\n",
         encoding="utf-8",
@@ -153,8 +177,9 @@ def main() -> None:
     print(f"Validation accuracy: {metrics['val']['accuracy']:.4f}")
     print(f"Test accuracy: {metrics['test']['accuracy']:.4f}")
     print(f"Wrote artifacts to {args.output_dir}")
+    if run:
+        run.finish()
 
 
 if __name__ == "__main__":
     main()
-

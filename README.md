@@ -11,3 +11,9 @@ For server setup, install the full modeling stack with:
 ```bash
 pip install -r requirements.txt
 ```
+
+Training scripts can log to Weights & Biases with:
+
+```bash
+python modeling/scripts/train_tfidf_logreg.py --use-wandb
+```

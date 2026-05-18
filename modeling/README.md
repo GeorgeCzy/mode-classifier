@@ -36,6 +36,20 @@ python modeling/scripts/create_splits.py
 python modeling/scripts/train_tfidf_logreg.py
 ```
 
+To log metrics to Weights & Biases:
+
+```bash
+wandb login
+python modeling/scripts/train_tfidf_logreg.py --use-wandb
+```
+
+Default W&B target:
+
+```text
+entity: chengzy2023-shanghaitech-university
+project: mode-classifier
+```
+
 For server setup and GPU selection on a shared machine, see `modeling/server_setup.md`.
 
 If you use the Anaconda Python installed on the local Windows machine:

@@ -22,6 +22,8 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
 
+from wandb_utils import add_wandb_args, init_wandb
+
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_SPLIT_DIR = ROOT / "modeling" / "data" / "splits"
@@ -58,6 +60,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--patience", type=int, default=8)
     parser.add_argument("--seed", type=int, default=20260518)
+    add_wandb_args(parser)
     return parser.parse_args()
 
 
@@ -118,6 +121,25 @@ def main() -> None:
     train_dataset = split_to_tensors(train_rows, id_to_index, embeddings)
     val_dataset = split_to_tensors(val_rows, id_to_index, embeddings)
     test_dataset = split_to_tensors(test_rows, id_to_index, embeddings)
+    run = init_wandb(
+        args,
+        config={
+            "architecture": "CachedEmbedding + MLPHead",
+            "embedding_cache": str(args.embedding_cache),
+            "embedding_dim": int(embeddings.shape[1]),
+            "hidden_dim": args.hidden_dim,
+            "dropout": args.dropout,
+            "learning_rate": args.lr,
+            "epochs": args.epochs,
+            "batch_size": args.batch_size,
+            "patience": args.patience,
+            "seed": args.seed,
+            "device": str(device),
+            "train_rows": len(train_rows),
+            "val_rows": len(val_rows),
+            "test_rows": len(test_rows),
+        },
+    )
 
     model = MLPHead(
         input_dim=embeddings.shape[1],
@@ -159,6 +181,16 @@ def main() -> None:
             f"train_acc={train_metrics['accuracy']:.4f} "
             f"val_acc={val_metrics['accuracy']:.4f}"
         )
+        if run:
+            run.log(
+                {
+                    "epoch": epoch,
+                    "train/loss": train_metrics["loss"],
+                    "train/accuracy": train_metrics["accuracy"],
+                    "val/loss": val_metrics["loss"],
+                    "val/accuracy": val_metrics["accuracy"],
+                }
+            )
 
         if val_metrics["accuracy"] > best_val_accuracy:
             best_val_accuracy = val_metrics["accuracy"]
@@ -193,8 +225,16 @@ def main() -> None:
     print(f"Best validation accuracy: {best_val_accuracy:.4f}")
     print(f"Test accuracy: {test_metrics['accuracy']:.4f}")
     print(f"Wrote artifacts to {args.output_dir}")
+    if run:
+        run.log(
+            {
+                "best_val/accuracy": best_val_accuracy,
+                "test/loss": test_metrics["loss"],
+                "test/accuracy": test_metrics["accuracy"],
+            }
+        )
+        run.finish()
 
 
 if __name__ == "__main__":
     main()
-
