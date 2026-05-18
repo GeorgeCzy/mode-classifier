@@ -2,6 +2,12 @@
 
 Run date: 2026-05-18
 
+Weights & Biases:
+
+```text
+https://wandb.ai/chengzy2023-shanghaitech-university/mode-classifier/runs/i7chueur
+```
+
 Input dataset:
 
 ```text

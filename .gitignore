@@ -10,4 +10,5 @@ env/
 *.tmp
 modeling/artifacts/
 modeling/data/embeddings/
+wandb/
 
