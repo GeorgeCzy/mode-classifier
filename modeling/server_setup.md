@@ -32,17 +32,23 @@ For Weights & Biases tracking:
 wandb login
 ```
 
-Conda is recommended when CUDA/PyTorch versions matter:
+Conda is recommended when CUDA/PyTorch versions matter. Create the base GPU environment first:
 
 ```bash
 conda env create -f modeling/environment.yml
 conda activate mode-classifier
 ```
 
-If the server already has a working PyTorch environment:
+Then install the remaining Python packages. If PyPI is slow from the server, use a mirror and longer timeout:
 
 ```bash
-pip install -r requirements.txt
+pip install -r modeling/requirements-server-extra.txt -i https://pypi.tuna.tsinghua.edu.cn/simple --timeout 120
+```
+
+If the mirror has issues, fall back to official PyPI:
+
+```bash
+pip install -r modeling/requirements-server-extra.txt --timeout 120
 ```
 
 For the lightweight TF-IDF baseline only:
