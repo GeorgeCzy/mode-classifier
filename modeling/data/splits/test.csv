@@ -1,0 +1,51 @@
+id,utterance,label
+deepseek-00390,I need to relax. Any tips?,chat
+deepseek-00006,Take a step backward.,motion_query
+deepseek-00380,Point to the tallest building over there.,motion_query
+deepseek-00414,I'm trying to decide between two restaurants. Which one is better?,chat
+deepseek-00196,Hold still while I clean your sensors.,motion_query
+deepseek-00449,Make a gesture to say hello.,motion_query
+deepseek-00005,"I'm feeling sad, can you cheer me up?",chat
+deepseek-00354,I'm feeling a bit down today.,chat
+deepseek-00111,How do I cook pasta?,chat
+deepseek-00169,Back away slowly.,motion_query
+deepseek-00259,Close your grippers gently.,motion_query
+deepseek-00132,Do you know any good jokes?,chat
+deepseek-00450,Act out a lion roar.,motion_query
+deepseek-00492,Shake your head to indicate no.,motion_query
+deepseek-00012,Bow down as a sign of respect.,motion_query
+deepseek-00339,How do I improve my posture?,chat
+deepseek-00401,What are the rules of chess?,chat
+deepseek-00384,Explain the process of photosynthesis.,chat
+deepseek-00253,Can you suggest a book to read?,chat
+deepseek-00121,What movie would you suggest for a rainy day?,chat
+deepseek-00272,Gesture to confirm you understand.,motion_query
+deepseek-00025,How can I learn Spanish quickly?,chat
+deepseek-00278,Point to yourself and then to the door.,motion_query
+deepseek-00149,Gently take this cup from me.,motion_query
+deepseek-00352,How long does it take to boil an egg?,chat
+deepseek-00331,Explain the theory of relativity simply.,chat
+deepseek-00314,I need advice on how to apologize to a friend.,chat
+deepseek-00075,Follow that person in the red jacket.,motion_query
+deepseek-00079,What was the score of the game last night?,chat
+deepseek-00176,Shake your head to disagree.,motion_query
+deepseek-00127,Can you point to the exit?,motion_query
+deepseek-00448,Can you give me a list of groceries?,chat
+deepseek-00011,What's the difference between a turtle and a tortoise?,chat
+deepseek-00048,Can you describe your emotions?,chat
+deepseek-00360,Is the store open on Sundays?,chat
+deepseek-00178,Can you help me plan a dinner menu?,chat
+deepseek-00135,Raise your arm if you agree.,motion_query
+deepseek-00302,Hold still while I take a picture.,motion_query
+deepseek-00159,Can you recommend a good book to read?,chat
+deepseek-00270,Point towards the nearest exit.,motion_query
+deepseek-00415,How do I change a tire?,chat
+deepseek-00202,Do you support voice commands in Spanish?,chat
+deepseek-00468,Nod to indicate yes.,motion_query
+deepseek-00069,Demonstrate how to tie a knot.,motion_query
+deepseek-00138,How do I cook pasta al dente?,chat
+deepseek-00417,Act out a scene from a play.,motion_query
+deepseek-00418,Can you guide me through this maze?,motion_query
+deepseek-00338,Go to the door and wait.,motion_query
+deepseek-00102,Carry this box to the storage room.,motion_query
+deepseek-00356,Pick up that toy from the floor.,motion_query

@@ -4,3 +4,4 @@ This repository is for building a classifier that decides whether a human uttera
 
 The first milestone is broad seed data generation. See `data_generation/` for dataset files, generation scripts, and progress notes.
 
+The second milestone is classifier modeling. See `modeling/` for train/validation/test splits, baseline training, and the embedding-head scaffold.
