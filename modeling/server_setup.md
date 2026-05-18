@@ -20,6 +20,12 @@ git pull
 
 ## 2. Create Environment
 
+Fast pip setup for the full modeling stack:
+
+```bash
+pip install -r requirements.txt
+```
+
 Conda is recommended when CUDA/PyTorch versions matter:
 
 ```bash
@@ -30,7 +36,7 @@ conda activate mode-classifier
 If the server already has a working PyTorch environment:
 
 ```bash
-pip install -r modeling/requirements-embedding.txt
+pip install -r requirements.txt
 ```
 
 For the lightweight TF-IDF baseline only:
@@ -116,4 +122,3 @@ Qwen3-Embedding-0.6B -> Qwen3-Embedding-4B -> Qwen3-Embedding-8B
 ```
 
 Do not launch long jobs on a busy shared GPU.
-
