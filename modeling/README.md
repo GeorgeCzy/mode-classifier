@@ -61,6 +61,20 @@ If you use the Anaconda Python installed on the local Windows machine:
 
 The first baseline run is summarized in `modeling/reports/tfidf_logreg_baseline.md`.
 
+## Try The Baseline
+
+After training `train_tfidf_logreg.py`, classify one utterance:
+
+```bash
+python modeling/scripts/predict_tfidf_logreg.py --text "Can you do a short dance?"
+```
+
+Or start an interactive prompt:
+
+```bash
+python modeling/scripts/predict_tfidf_logreg.py
+```
+
 ## Why Start With TF-IDF
 
 The classifier is a semantic binary task, but many important cues are lexical: `point`, `bring`, `turn`, `follow`, `show me`, `demonstrate`, `stay still`, and so on. A simple baseline helps reveal whether larger embeddings are adding real value.
