@@ -10,3 +10,6 @@
 - Validated the seed dataset: 250 `chat`, 250 `motion_query`, 500 unique utterances.
 - Simplified raw dataset exports to the training fields only: `id`, `utterance`, `label`.
 - Documented that the current generator uses curated examples rather than an LLM API.
+- Replaced the rigid hard-coded seed generator with a DeepSeek API-based generation pipeline.
+- Moved the curated 500 examples to `data/reference/` for use as prompt reference data.
+- Added prompt templates and validation scripts for generated CSV/JSONL outputs.

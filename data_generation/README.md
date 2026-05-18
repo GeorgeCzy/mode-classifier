@@ -1,6 +1,6 @@
 # Data Generation
 
-This folder contains the seed data generation workflow for the response-mode classifier.
+This folder contains the data generation workflow for the response-mode classifier.
 
 ## Label Definitions
 
@@ -16,22 +16,32 @@ This folder contains the seed data generation workflow for the response-mode cla
 
 ## Current Seed Dataset
 
-- `data/raw/seed_500.jsonl`: JSON Lines format for model training pipelines.
-- `data/raw/seed_500.csv`: CSV format for quick inspection.
-- Total examples: 500
-- Distribution: 250 `chat`, 250 `motion_query`
-- Language: English
-- Fields: `id`, `utterance`, `label`
+- `data/reference/manual_seed_500.csv`: Curated reference examples used inside LLM prompts.
+- `data/reference/manual_seed_500.jsonl`: JSONL copy of the curated reference examples.
+- Reference total examples: 500
+- Reference distribution: 250 `chat`, 250 `motion_query`
+- Exported training fields: `id`, `utterance`, `label`
 - Splits: Not assigned yet. A later step can create train/validation/test splits.
 
 ## Generation Method
 
-The current seed dataset is generated from curated scenario groups inside `generate_seed_dataset.py`. The script does not call an LLM API. It stores hand-authored English utterances in broad categories, shuffles them with a fixed random seed, validates the label balance and uniqueness, then writes CSV and JSONL files.
+The current generation pipeline uses the DeepSeek chat completions API. The curated 500 examples are no longer hard-coded in a generator script; they are kept as prompt reference data so the LLM can learn the expected style and label boundaries.
+
+The generator writes new candidates to `data/raw/` in both CSV and JSONL formats. The exported training files contain only `id`, `utterance`, and `label`.
+
+The script reads the API key from one of these environment variables:
+
+- `DEEPSEEK-mode-classifier-apikey`
+- `DEEPSEEK_MODE_CLASSIFIER_APIKEY`
+- `DEEPSEEK_API_KEY`
 
 ## Regeneration
 
 Run this from the repository root:
 
 ```powershell
-python data_generation/generate_seed_dataset.py
+python data_generation/scripts/generate_with_deepseek.py --total 500 --output-stem deepseek_generated_500
+python data_generation/scripts/validate_dataset.py data_generation/data/raw/deepseek_generated_500.csv --expect-total 500 --require-balanced
 ```
+
+The default model is `deepseek-v4-flash`, using the OpenAI-compatible DeepSeek endpoint at `https://api.deepseek.com/chat/completions`.
