@@ -29,11 +29,21 @@ The current generation pipeline uses the DeepSeek chat completions API. The cura
 
 The generator writes new candidates to `data/raw/` in both CSV and JSONL formats. The exported training files contain only `id`, `utterance`, and `label`.
 
+Current generated dataset:
+
+- `data/raw/deepseek_generated_500.csv`
+- `data/raw/deepseek_generated_500.jsonl`
+- Total examples: 500
+- Distribution: 250 `chat`, 250 `motion_query`
+- Exact overlap with reference examples: 0
+
 The script reads the API key from one of these environment variables:
 
 - `DEEPSEEK-mode-classifier-apikey`
 - `DEEPSEEK_MODE_CLASSIFIER_APIKEY`
 - `DEEPSEEK_API_KEY`
+
+On Windows, the script also checks persisted User and Machine environment variables if the key was not inherited by the current process.
 
 ## Regeneration
 

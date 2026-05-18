@@ -83,8 +83,41 @@ def get_api_key(env_name: str | None) -> str:
         value = os.environ.get(name)
         if value:
             return value
+        value = get_windows_environment_value(name)
+        if value:
+            return value
     expected = ", ".join(name for name in names if name)
     raise RuntimeError(f"DeepSeek API key not found. Expected one of: {expected}")
+
+
+def get_windows_environment_value(name: str) -> str | None:
+    """Read persisted Windows environment variables when not inherited."""
+
+    if os.name != "nt":
+        return None
+
+    try:
+        import winreg
+    except ImportError:
+        return None
+
+    registry_locations = (
+        (winreg.HKEY_CURRENT_USER, "Environment"),
+        (
+            winreg.HKEY_LOCAL_MACHINE,
+            r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment",
+        ),
+    )
+
+    for root, subkey in registry_locations:
+        try:
+            with winreg.OpenKey(root, subkey) as key:
+                value, _value_type = winreg.QueryValueEx(key, name)
+        except OSError:
+            continue
+        if value:
+            return str(value)
+    return None
 
 
 def read_prompt(path: Path) -> str:

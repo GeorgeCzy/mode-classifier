@@ -13,3 +13,6 @@
 - Replaced the rigid hard-coded seed generator with a DeepSeek API-based generation pipeline.
 - Moved the curated 500 examples to `data/reference/` for use as prompt reference data.
 - Added prompt templates and validation scripts for generated CSV/JSONL outputs.
+- Added Windows persisted environment variable lookup for the DeepSeek API key.
+- Generated `deepseek_generated_500.csv` and `deepseek_generated_500.jsonl` with the DeepSeek API.
+- Validated the generated dataset: 500 unique utterances, 250 `chat`, 250 `motion_query`, and no exact overlap with reference examples.
