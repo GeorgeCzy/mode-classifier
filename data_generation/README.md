@@ -31,11 +31,16 @@ The generator writes new candidates to `data/raw/` in both CSV and JSONL formats
 
 Current generated dataset:
 
-- `data/raw/deepseek_generated_500.csv`
-- `data/raw/deepseek_generated_500.jsonl`
-- Total examples: 500
-- Distribution: 250 `chat`, 250 `motion_query`
+- `data/raw/deepseek_generated_2000.csv`
+- `data/raw/deepseek_generated_2000.jsonl`
+- Total examples: 2000
+- Distribution: 1000 `chat`, 1000 `motion_query`
 - Exact overlap with reference examples: 0
+
+Component generated datasets:
+
+- `data/raw/deepseek_generated_500.csv`
+- `data/raw/deepseek_generated_extra_1500.csv`
 
 The script reads the API key from one of these environment variables:
 
@@ -50,8 +55,9 @@ On Windows, the script also checks persisted User and Machine environment variab
 Run this from the repository root:
 
 ```powershell
-python data_generation/scripts/generate_with_deepseek.py --total 500 --output-stem deepseek_generated_500
-python data_generation/scripts/validate_dataset.py data_generation/data/raw/deepseek_generated_500.csv --expect-total 500 --require-balanced
+python data_generation/scripts/generate_with_deepseek.py --total 1500 --output-stem deepseek_generated_extra_1500 --id-prefix deepseek-extra --exclude-path data_generation/data/raw/deepseek_generated_500.csv
+python data_generation/scripts/merge_datasets.py --input data_generation/data/raw/deepseek_generated_500.csv --input data_generation/data/raw/deepseek_generated_extra_1500.csv --output-stem deepseek_generated_2000 --id-prefix deepseek2000 --shuffle
+python data_generation/scripts/validate_dataset.py data_generation/data/raw/deepseek_generated_2000.csv --expect-total 2000 --require-balanced
 ```
 
 The default model is `deepseek-v4-flash`, using the OpenAI-compatible DeepSeek endpoint at `https://api.deepseek.com/chat/completions`.

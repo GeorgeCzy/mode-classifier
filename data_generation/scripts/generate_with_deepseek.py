@@ -61,6 +61,18 @@ def parse_args() -> argparse.Namespace:
         help="Output filename stem under data/raw.",
     )
     parser.add_argument(
+        "--id-prefix",
+        default="deepseek",
+        help="Prefix for generated row ids.",
+    )
+    parser.add_argument(
+        "--exclude-path",
+        type=Path,
+        action="append",
+        default=[],
+        help="Existing CSV/JSONL dataset to avoid duplicating. Can be repeated.",
+    )
+    parser.add_argument(
         "--reference-count",
         type=int,
         default=24,
@@ -136,6 +148,28 @@ def read_reference_examples(path: Path) -> list[dict[str, str]]:
     if not examples:
         raise RuntimeError(f"No usable reference examples found in {path}")
     return examples
+
+
+def read_dataset(path: Path) -> list[dict[str, str]]:
+    if path.suffix.lower() == ".jsonl":
+        return [
+            json.loads(line)
+            for line in path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+    if path.suffix.lower() == ".csv":
+        with path.open("r", encoding="utf-8", newline="") as file:
+            return list(csv.DictReader(file))
+    raise ValueError(f"Unsupported dataset extension for exclude path: {path}")
+
+
+def normalized_utterances(rows: list[dict[str, Any]]) -> set[str]:
+    normalized: set[str] = set()
+    for row in rows:
+        utterance = str(row.get("utterance", "")).strip()
+        if utterance:
+            normalized.add(" ".join(utterance.lower().split()))
+    return normalized
 
 
 def format_reference_examples(
@@ -287,10 +321,11 @@ def main() -> None:
         }
     )
     generated: list[dict[str, str]] = []
-    seen = {
-        " ".join(example["utterance"].lower().split())
-        for example in reference_examples
-    }
+    seen = normalized_utterances(reference_examples)
+    for exclude_path in args.exclude_path:
+        excluded_rows = read_dataset(exclude_path)
+        seen.update(normalized_utterances(excluded_rows))
+        print(f"Loaded {len(excluded_rows)} exclusion rows from {exclude_path}")
 
     attempt = 0
     while sum(Counter(example["label"] for example in generated).values()) < args.total:
@@ -360,7 +395,7 @@ def main() -> None:
 
     rng.shuffle(generated)
     for index, example in enumerate(generated, start=1):
-        example["id"] = f"deepseek-{index:05d}"
+        example["id"] = f"{args.id_prefix}-{index:05d}"
 
     jsonl_path, csv_path = write_outputs(generated, args.output_stem)
     print(f"Wrote {len(generated)} examples to {jsonl_path}")

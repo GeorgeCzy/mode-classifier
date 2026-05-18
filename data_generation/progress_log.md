@@ -16,3 +16,6 @@
 - Added Windows persisted environment variable lookup for the DeepSeek API key.
 - Generated `deepseek_generated_500.csv` and `deepseek_generated_500.jsonl` with the DeepSeek API.
 - Validated the generated dataset: 500 unique utterances, 250 `chat`, 250 `motion_query`, and no exact overlap with reference examples.
+- Added dataset exclusion and merge utilities for larger generation runs.
+- Generated `deepseek_generated_extra_1500.csv` and merged it with the first 500 examples.
+- Validated `deepseek_generated_2000.csv`: 2000 unique utterances, 1000 `chat`, 1000 `motion_query`, and no exact overlap with reference examples.

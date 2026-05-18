@@ -13,7 +13,7 @@ The current goal is to build a reliable baseline before using a large embedding 
 Default input:
 
 ```text
-data_generation/data/raw/deepseek_generated_500.csv
+data_generation/data/raw/deepseek_generated_2000.csv
 ```
 
 Expected columns:

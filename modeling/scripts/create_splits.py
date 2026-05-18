@@ -11,7 +11,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_INPUT = ROOT / "data_generation" / "data" / "raw" / "deepseek_generated_500.csv"
+DEFAULT_INPUT = ROOT / "data_generation" / "data" / "raw" / "deepseek_generated_2000.csv"
 DEFAULT_OUTPUT_DIR = ROOT / "modeling" / "data" / "splits"
 LABELS = {"chat", "motion_query"}
 
@@ -127,4 +127,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
