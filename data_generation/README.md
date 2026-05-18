@@ -21,7 +21,12 @@ This folder contains the seed data generation workflow for the response-mode cla
 - Total examples: 500
 - Distribution: 250 `chat`, 250 `motion_query`
 - Language: English
+- Fields: `id`, `utterance`, `label`
 - Splits: Not assigned yet. A later step can create train/validation/test splits.
+
+## Generation Method
+
+The current seed dataset is generated from curated scenario groups inside `generate_seed_dataset.py`. The script does not call an LLM API. It stores hand-authored English utterances in broad categories, shuffles them with a fixed random seed, validates the label balance and uniqueness, then writes CSV and JSONL files.
 
 ## Regeneration
 
@@ -30,4 +35,3 @@ Run this from the repository root:
 ```powershell
 python data_generation/generate_seed_dataset.py
 ```
-

@@ -14,7 +14,6 @@ RAW_DIR = ROOT / "data" / "raw"
 JSONL_PATH = RAW_DIR / "seed_500.jsonl"
 CSV_PATH = RAW_DIR / "seed_500.csv"
 
-DATASET_VERSION = "seed_v1"
 RANDOM_SEED = 20260518
 
 
@@ -780,14 +779,12 @@ def build_examples() -> list[dict[str, str]]:
     examples: list[dict[str, str]] = []
 
     for label, groups in (("chat", CHAT_GROUPS), ("motion_query", MOTION_GROUPS)):
-        for scenario, utterances in groups:
+        for _scenario, utterances in groups:
             for utterance in utterances:
                 examples.append(
                     {
                         "utterance": utterance,
                         "label": label,
-                        "scenario": scenario,
-                        "dataset_version": DATASET_VERSION,
                     }
                 )
 
@@ -801,6 +798,11 @@ def build_examples() -> list[dict[str, str]]:
 def validate(examples: list[dict[str, str]]) -> None:
     if len(examples) != 500:
         raise ValueError(f"Expected 500 examples, found {len(examples)}.")
+
+    expected_fields = {"id", "utterance", "label"}
+    for example in examples:
+        if set(example) != expected_fields:
+            raise ValueError(f"Unexpected fields found: {sorted(example)}")
 
     utterances = [example["utterance"] for example in examples]
     duplicates = [text for text, count in Counter(utterances).items() if count > 1]
@@ -824,7 +826,7 @@ def write_jsonl(examples: list[dict[str, str]]) -> None:
 
 
 def write_csv(examples: list[dict[str, str]]) -> None:
-    fieldnames = ["id", "utterance", "label", "scenario", "dataset_version"]
+    fieldnames = ["id", "utterance", "label"]
     with CSV_PATH.open("w", encoding="utf-8", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=fieldnames)
         writer.writeheader()

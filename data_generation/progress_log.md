@@ -8,3 +8,5 @@
 - Added a reproducible seed dataset generator.
 - Generated `seed_500.jsonl` and `seed_500.csv` with 500 English human-robot utterances.
 - Validated the seed dataset: 250 `chat`, 250 `motion_query`, 500 unique utterances.
+- Simplified raw dataset exports to the training fields only: `id`, `utterance`, `label`.
+- Documented that the current generator uses curated examples rather than an LLM API.
