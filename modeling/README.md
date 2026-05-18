@@ -31,12 +31,14 @@ Labels:
 
 From the repository root:
 
-```powershell
+```bash
 python modeling/scripts/create_splits.py
 python modeling/scripts/train_tfidf_logreg.py
 ```
 
-If you use the Anaconda Python installed on this machine:
+For server setup and GPU selection on a shared machine, see `modeling/server_setup.md`.
+
+If you use the Anaconda Python installed on the local Windows machine:
 
 ```powershell
 & "D:\anaconda3\python.exe" modeling/scripts/create_splits.py

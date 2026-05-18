@@ -9,4 +9,5 @@ env/
 *.log
 *.tmp
 modeling/artifacts/
+modeling/data/embeddings/
 
