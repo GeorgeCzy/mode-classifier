@@ -134,3 +134,17 @@ Qwen3-Embedding-0.6B -> Qwen3-Embedding-4B -> Qwen3-Embedding-8B
 ```
 
 Do not launch long jobs on a busy shared GPU.
+
+Example:
+
+```bash
+export CUDA_VISIBLE_DEVICES=1
+python modeling/scripts/cache_text_embeddings.py \
+  --model-name Qwen/Qwen3-Embedding-0.6B \
+  --output modeling/data/embeddings/qwen3_0_6b_deepseek_2000.npz
+
+python modeling/scripts/train_embedding_mlp.py \
+  --embedding-cache modeling/data/embeddings/qwen3_0_6b_deepseek_2000.npz \
+  --use-wandb \
+  --wandb-run-name qwen3-0.6b-mlp
+```

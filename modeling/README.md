@@ -81,10 +81,41 @@ The classifier is a semantic binary task, but many important cues are lexical: `
 
 ## Embedding + MLP Plan
 
-After baseline evaluation, use an embedding model to create cached vectors:
+Use an embedding model to create cached vectors:
 
 ```text
 utterance -> embedding model -> cached .npz vectors -> MLP head -> label
 ```
 
 The MLP script expects cached embeddings instead of calling a model directly. This keeps expensive embedding generation separate from classifier training.
+
+Recommended first embedding model:
+
+```text
+Qwen/Qwen3-Embedding-0.6B
+```
+
+Create the embedding cache:
+
+```bash
+python modeling/scripts/cache_text_embeddings.py \
+  --model-name Qwen/Qwen3-Embedding-0.6B \
+  --output modeling/data/embeddings/qwen3_0_6b_deepseek_2000.npz
+```
+
+Train the MLP head:
+
+```bash
+python modeling/scripts/train_embedding_mlp.py \
+  --embedding-cache modeling/data/embeddings/qwen3_0_6b_deepseek_2000.npz \
+  --use-wandb \
+  --wandb-run-name qwen3-0.6b-mlp
+```
+
+Try the embedding model:
+
+```bash
+python modeling/scripts/predict_embedding_mlp.py \
+  --model-dir modeling/artifacts/embedding_mlp \
+  --text "Can you do a short dance?"
+```

@@ -17,3 +17,11 @@ Training scripts can log to Weights & Biases with:
 ```bash
 python modeling/scripts/train_tfidf_logreg.py --use-wandb
 ```
+
+The intended non-baseline model is:
+
+```text
+Qwen text embeddings + small MLP classifier head
+```
+
+See `modeling/README.md` for embedding cache and MLP training commands.

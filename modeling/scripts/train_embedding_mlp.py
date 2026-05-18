@@ -207,6 +207,23 @@ def main() -> None:
     test_metrics = evaluate(model, test_dataset, device)
     args.output_dir.mkdir(parents=True, exist_ok=True)
     torch.save(model.state_dict(), args.output_dir / "model.pt")
+    model_config = {
+        "architecture": "CachedEmbedding + MLPHead",
+        "embedding_cache": str(args.embedding_cache),
+        "input_dim": int(embeddings.shape[1]),
+        "hidden_dim": args.hidden_dim,
+        "dropout": args.dropout,
+        "labels": INDEX_TO_LABEL,
+    }
+    cache_metadata_path = args.embedding_cache.with_suffix(".json")
+    if cache_metadata_path.exists():
+        model_config["embedding_metadata"] = json.loads(
+            cache_metadata_path.read_text(encoding="utf-8")
+        )
+    (args.output_dir / "model_config.json").write_text(
+        json.dumps(model_config, indent=2, ensure_ascii=True) + "\n",
+        encoding="utf-8",
+    )
     (args.output_dir / "metrics.json").write_text(
         json.dumps(
             {
@@ -215,6 +232,8 @@ def main() -> None:
                 "history": history,
                 "labels": INDEX_TO_LABEL,
                 "embedding_dim": int(embeddings.shape[1]),
+                "hidden_dim": args.hidden_dim,
+                "dropout": args.dropout,
             },
             indent=2,
             ensure_ascii=True,
