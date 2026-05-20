@@ -149,6 +149,8 @@ python modeling/scripts/train_embedding_mlp.py \
   --wandb-run-name qwen3-0.6b-mlp
 ```
 
+The MLP script logs `train/batch_loss` every 10 optimizer steps by default. Use `--log-every-n-steps 1` for denser logging or a larger value for quieter runs.
+
 If W&B has network issues, use offline mode:
 
 ```bash

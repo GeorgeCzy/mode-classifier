@@ -60,6 +60,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--patience", type=int, default=8)
     parser.add_argument("--seed", type=int, default=20260518)
+    parser.add_argument(
+        "--log-every-n-steps",
+        type=int,
+        default=10,
+        help="Log batch loss to W&B every N optimizer steps.",
+    )
     add_wandb_args(parser)
     return parser.parse_args()
 
@@ -134,6 +140,7 @@ def main() -> None:
             "batch_size": args.batch_size,
             "patience": args.patience,
             "seed": args.seed,
+            "log_every_n_steps": args.log_every_n_steps,
             "device": str(device),
             "train_rows": len(train_rows),
             "val_rows": len(val_rows),
@@ -154,16 +161,27 @@ def main() -> None:
     best_state = None
     stale_epochs = 0
     history: list[dict[str, float | int]] = []
+    global_step = 0
 
     for epoch in range(1, args.epochs + 1):
         model.train()
-        for inputs, labels in train_loader:
+        for batch_index, (inputs, labels) in enumerate(train_loader, start=1):
             inputs = inputs.to(device)
             labels = labels.to(device)
             optimizer.zero_grad()
             loss = criterion(model(inputs), labels)
             loss.backward()
             optimizer.step()
+            global_step += 1
+            if run and args.log_every_n_steps > 0 and global_step % args.log_every_n_steps == 0:
+                run.log(
+                    {
+                        "epoch": epoch,
+                        "batch": batch_index,
+                        "train/batch_loss": float(loss.item()),
+                    },
+                    step=global_step,
+                )
 
         train_metrics = evaluate(model, train_dataset, device)
         val_metrics = evaluate(model, val_dataset, device)
@@ -189,7 +207,8 @@ def main() -> None:
                     "train/accuracy": train_metrics["accuracy"],
                     "val/loss": val_metrics["loss"],
                     "val/accuracy": val_metrics["accuracy"],
-                }
+                },
+                step=global_step,
             )
 
         if val_metrics["accuracy"] > best_val_accuracy:
@@ -250,7 +269,8 @@ def main() -> None:
                 "best_val/accuracy": best_val_accuracy,
                 "test/loss": test_metrics["loss"],
                 "test/accuracy": test_metrics["accuracy"],
-            }
+            },
+            step=global_step + 1,
         )
         run.finish()
 
