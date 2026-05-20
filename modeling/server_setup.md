@@ -148,3 +148,9 @@ python modeling/scripts/train_embedding_mlp.py \
   --use-wandb \
   --wandb-run-name qwen3-0.6b-mlp
 ```
+
+If W&B has network issues, use offline mode:
+
+```bash
+python modeling/scripts/train_embedding_mlp.py --embedding-cache modeling/data/embeddings/qwen3_0_6b_deepseek_2000.npz --use-wandb --wandb-mode offline --wandb-run-name qwen3-0.6b-mlp
+```

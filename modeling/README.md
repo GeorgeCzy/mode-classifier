@@ -103,6 +103,12 @@ python modeling/scripts/cache_text_embeddings.py \
   --output modeling/data/embeddings/qwen3_0_6b_deepseek_2000.npz
 ```
 
+If embeddings were written but metadata failed, regenerate metadata only:
+
+```bash
+python modeling/scripts/cache_text_embeddings.py --model-name Qwen/Qwen3-Embedding-0.6B --output modeling/data/embeddings/qwen3_0_6b_deepseek_2000.npz --metadata-only
+```
+
 Train the MLP head:
 
 ```bash
@@ -110,6 +116,12 @@ python modeling/scripts/train_embedding_mlp.py \
   --embedding-cache modeling/data/embeddings/qwen3_0_6b_deepseek_2000.npz \
   --use-wandb \
   --wandb-run-name qwen3-0.6b-mlp
+```
+
+If W&B online sync is unstable, use offline mode and sync later:
+
+```bash
+python modeling/scripts/train_embedding_mlp.py --embedding-cache modeling/data/embeddings/qwen3_0_6b_deepseek_2000.npz --use-wandb --wandb-mode offline --wandb-run-name qwen3-0.6b-mlp
 ```
 
 Try the embedding model:
