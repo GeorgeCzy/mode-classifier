@@ -1,12 +1,91 @@
 # Modeling
 
-This folder contains the first modeling pipeline for the response-mode classifier.
+This folder contains the local LLM inference pipeline for the response-mode classifier.
 
-The current goal is to build a reliable baseline before using a large embedding model. The first version uses:
+The active branch classifies each utterance directly with a lightweight local instruct model instead of training a TF-IDF model, embedding cache, or neural classifier head. The archived baseline scripts are still kept for comparison.
 
-1. Stratified train/validation/test split
-2. TF-IDF + logistic regression baseline
-3. A prepared PyTorch MLP head for cached text embeddings
+Default local model:
+
+```text
+Qwen/Qwen2.5-0.5B-Instruct
+```
+
+The prompt is stored in:
+
+```text
+modeling/prompts/llm_direct_classifier_system.md
+```
+
+## Labels
+
+Runtime labels:
+
+- `text`
+- `motion prompt`
+
+The existing generated datasets still use the older labels:
+
+- `chat` maps to `text`
+- `motion_query` maps to `motion prompt`
+
+## Local LLM Inference
+
+Install the full stack from the repository root:
+
+```bash
+pip install -r requirements.txt
+```
+
+On the local Windows machine, the Anaconda Python path can be used directly:
+
+```powershell
+& "D:\anaconda3\python.exe" modeling/scripts/predict_llm_instruct.py --text "Can you do a short dance?"
+```
+
+The first run downloads the model from Hugging Face and later runs reuse the local cache.
+
+Classify one utterance:
+
+```bash
+python modeling/scripts/predict_llm_instruct.py --text "Point to the exit."
+```
+
+The default mode asks the instruct model a yes/no question about whether concrete
+physical action is required, then maps `NO` to `text` and `YES` to
+`motion prompt`. Direct label generation is available with `--method generate`.
+An experimental A/B likelihood scorer is also available with `--method score`.
+
+Start an interactive prompt:
+
+```bash
+python modeling/scripts/predict_llm_instruct.py
+```
+
+Evaluate accuracy and latency on the generated test split:
+
+```bash
+python modeling/scripts/predict_llm_instruct.py --eval-path modeling/data/splits/test.csv
+```
+
+For a quick smoke test:
+
+```bash
+python modeling/scripts/predict_llm_instruct.py --eval-path modeling/data/splits/test.csv --limit 20
+```
+
+Outputs are written under:
+
+```text
+modeling/artifacts/llm_instruct/
+```
+
+This directory is git-ignored because prediction artifacts can be regenerated.
+
+The first 200-row test run is summarized in:
+
+```text
+modeling/reports/qwen2_5_0_5b_instruct_direct.md
+```
 
 ## Data
 
@@ -22,12 +101,20 @@ Expected columns:
 id,utterance,label
 ```
 
-Labels:
+Legacy dataset labels:
 
 - `chat`
 - `motion_query`
 
-## Recommended First Run
+## Archived Baselines
+
+Previous scripts used:
+
+1. Stratified train/validation/test split
+2. TF-IDF + logistic regression baseline
+3. A prepared PyTorch MLP head for cached text embeddings
+
+Recommended baseline run:
 
 From the repository root:
 
