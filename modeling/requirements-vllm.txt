@@ -1,0 +1,5 @@
+# Minimal dependency set for the local vLLM direct-inference classifier.
+# vLLM is intended for Linux GPU deployment. Install this in a fresh server
+# environment when you only need modeling/scripts/predict_llm_instruct.py.
+vllm>=0.8.5
+transformers>=4.51

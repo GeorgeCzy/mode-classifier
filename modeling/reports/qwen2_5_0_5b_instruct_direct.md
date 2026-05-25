@@ -17,7 +17,7 @@ modeling/prompts/llm_direct_classifier_system.md
 Inference method:
 
 ```text
-Local Hugging Face transformers inference.
+Local vLLM offline inference.
 Default method: yes/no decision over whether the robot must perform a concrete
 physical action, mapped to runtime labels:
 NO  -> text
@@ -30,10 +30,10 @@ Evaluation command:
 python modeling/scripts/predict_llm_instruct.py --eval-path modeling/data/splits/test.csv
 ```
 
-On the local Windows machine:
+On a Linux/CUDA deployment machine:
 
-```powershell
-& "D:\anaconda3\python.exe" modeling/scripts/predict_llm_instruct.py --eval-path modeling/data/splits/test.csv
+```bash
+python modeling/scripts/predict_llm_instruct.py --eval-path modeling/data/splits/test.csv --batch-size 16
 ```
 
 Dataset:
@@ -45,7 +45,7 @@ legacy labels: chat, motion_query
 runtime labels: text, motion prompt
 ```
 
-Results:
+Historical results from the pre-vLLM local run:
 
 | Metric | Value |
 | --- | ---: |
@@ -84,8 +84,10 @@ Observed errors:
 
 Notes:
 
-- The model was downloaded locally through `transformers.from_pretrained` on the
-  first run and loaded from cache in later runs.
+- The current implementation uses vLLM as the inference backend. The numbers
+  above were measured before the vLLM migration with the same model and prompt;
+  rerun the command above on a vLLM-capable Linux/CUDA machine to refresh
+  latency numbers for the new backend.
 - Direct 0.5B LLM inference is simple and fast enough for a lightweight local
   baseline, but it is less accurate than the previous trained TF-IDF baseline on
   this generated test split.

@@ -26,6 +26,15 @@ Fast pip setup for the full modeling stack:
 pip install -r requirements.txt
 ```
 
+For the current local LLM classifier only, install the minimal vLLM stack:
+
+```bash
+pip install -r modeling/requirements-vllm.txt
+```
+
+vLLM is meant for Linux GPU deployment. On Windows, use a compatible Linux
+server or WSL2/CUDA setup rather than a plain Windows Python environment.
+
 For Weights & Biases tracking:
 
 ```bash
@@ -51,7 +60,7 @@ If the mirror has issues, fall back to official PyPI:
 pip install -r modeling/requirements-server-extra.txt --timeout 120
 ```
 
-For the lightweight TF-IDF baseline only:
+For the core modeling scripts without W&B or embedding extras:
 
 ```bash
 pip install -r modeling/requirements.txt
@@ -87,7 +96,7 @@ Use `CUDA_VISIBLE_DEVICES` to bind the process to one GPU:
 export CUDA_VISIBLE_DEVICES=0
 ```
 
-Then verify PyTorch sees only that device:
+Then verify the selected GPU is visible:
 
 ```bash
 python -c "import torch; print(torch.cuda.is_available(), torch.cuda.device_count(), torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"
@@ -99,9 +108,35 @@ For one-off commands:
 CUDA_VISIBLE_DEVICES=0 python modeling/scripts/train_tfidf_logreg.py
 ```
 
-The TF-IDF baseline does not need GPU, but embedding generation and embedding-head training may benefit from one.
+The TF-IDF baseline does not need GPU. The current vLLM direct classifier,
+embedding generation, and embedding-head training are GPU-oriented.
 
-## 5. Run Baseline
+## 5. Run vLLM Direct Classifier
+
+Single utterance:
+
+```bash
+python modeling/scripts/predict_llm_instruct.py --text "Point to the exit."
+```
+
+Evaluate the existing generated test split:
+
+```bash
+python modeling/scripts/predict_llm_instruct.py \
+  --eval-path modeling/data/splits/test.csv \
+  --batch-size 16 \
+  --gpu-memory-utilization 0.90
+```
+
+For multi-GPU tensor parallel inference:
+
+```bash
+CUDA_VISIBLE_DEVICES=0,1 python modeling/scripts/predict_llm_instruct.py \
+  --eval-path modeling/data/splits/test.csv \
+  --tensor-parallel-size 2
+```
+
+## 6. Run Baseline
 
 ```bash
 python modeling/scripts/create_splits.py
@@ -116,7 +151,7 @@ modeling/artifacts/
 
 This directory is intentionally ignored by Git.
 
-## 6. Embedding + MLP Direction
+## 7. Embedding + MLP Direction
 
 The next planned server workflow is:
 

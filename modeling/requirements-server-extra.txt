@@ -1,6 +1,6 @@
 transformers>=4.51
 accelerate>=0.33
+vllm>=0.8.5
 sentence-transformers>=3.0
 gpustat>=1.1
 wandb>=0.17
-

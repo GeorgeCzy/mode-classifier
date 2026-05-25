@@ -2,7 +2,7 @@
 
 This folder contains the local LLM inference pipeline for the response-mode classifier.
 
-The active branch classifies each utterance directly with a lightweight local instruct model instead of training a TF-IDF model, embedding cache, or neural classifier head. The archived baseline scripts are still kept for comparison.
+The active branch classifies each utterance directly with a lightweight local instruct model through vLLM instead of training a TF-IDF model, embedding cache, or neural classifier head. The archived baseline scripts are still kept for comparison.
 
 Default local model:
 
@@ -15,6 +15,19 @@ The prompt is stored in:
 ```text
 modeling/prompts/llm_direct_classifier_system.md
 ```
+
+## What vLLM Does Here
+
+vLLM is the runtime that serves the downloaded instruct model for inference. In
+this project it replaces direct `transformers` generation. The script now uses:
+
+```python
+from vllm import LLM, SamplingParams
+```
+
+vLLM handles model loading, GPU memory management, prompt batching, and fast
+token generation. The model is still `Qwen/Qwen2.5-0.5B-Instruct`; vLLM is the
+engine used to run it.
 
 ## Labels
 
@@ -30,16 +43,26 @@ The existing generated datasets still use the older labels:
 
 ## Local LLM Inference
 
-Install the full stack from the repository root:
+Install the full stack from the repository root on a Linux/CUDA deployment
+machine:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-On the local Windows machine, the Anaconda Python path can be used directly:
+For only the direct vLLM classifier:
 
-```powershell
-& "D:\anaconda3\python.exe" modeling/scripts/predict_llm_instruct.py --text "Can you do a short dance?"
+```bash
+pip install -r modeling/requirements-vllm.txt
+```
+
+vLLM is intended for GPU server deployment. If running from Windows, use a Linux
+server or WSL2/CUDA environment that supports vLLM.
+
+On a deployment machine:
+
+```bash
+python modeling/scripts/predict_llm_instruct.py --text "Can you do a short dance?"
 ```
 
 The first run downloads the model from Hugging Face and later runs reuse the local cache.
@@ -53,7 +76,16 @@ python modeling/scripts/predict_llm_instruct.py --text "Point to the exit."
 The default mode asks the instruct model a yes/no question about whether concrete
 physical action is required, then maps `NO` to `text` and `YES` to
 `motion prompt`. Direct label generation is available with `--method generate`.
-An experimental A/B likelihood scorer is also available with `--method score`.
+
+Useful vLLM options:
+
+```bash
+python modeling/scripts/predict_llm_instruct.py \
+  --eval-path modeling/data/splits/test.csv \
+  --batch-size 16 \
+  --tensor-parallel-size 1 \
+  --gpu-memory-utilization 0.90
+```
 
 Start an interactive prompt:
 

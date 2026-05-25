@@ -5,3 +5,4 @@ numpy>=1.24
 torch>=2.2
 transformers>=4.51
 accelerate>=0.33
+vllm>=0.8.5

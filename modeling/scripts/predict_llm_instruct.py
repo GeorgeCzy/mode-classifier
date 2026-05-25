@@ -5,14 +5,13 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 import re
 import statistics
 import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-
-import torch
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -28,10 +27,6 @@ MOTION_CUES = (
     "point, place, bring, carry, spin, wave, gesture, use your hand, demonstrate, "
     "follow, turn, move, stop"
 )
-CHOICE_TO_LABEL = {
-    "A": "text",
-    "B": "motion prompt",
-}
 LABEL_MAP = {
     "chat": "text",
     "text": "text",
@@ -61,7 +56,6 @@ class Prediction:
     label: str
     raw_output: str
     latency_seconds: float
-    scores: dict[str, float] | None = None
 
 
 def parse_args() -> argparse.Namespace:
@@ -80,7 +74,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--output-csv", type=Path, default=None)
     parser.add_argument("--limit", type=int, default=None, help="Optional eval row limit.")
-    parser.add_argument("--device", default=None, help="cuda, cpu, or auto default.")
     parser.add_argument(
         "--dtype",
         choices=["auto", "float16", "bfloat16", "float32"],
@@ -89,16 +82,21 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-new-tokens", type=int, default=8)
     parser.add_argument(
         "--method",
-        choices=["yesno", "generate", "score"],
+        choices=["yesno", "generate"],
         default="yesno",
         help=(
             "yesno asks whether concrete physical action is needed and maps the "
-            "answer to labels; generate asks the LLM to emit a label; score ranks "
-            "A/B choices by likelihood."
+            "answer to labels; generate asks the LLM to emit a label."
         ),
     )
     parser.add_argument("--warmup", type=int, default=1)
+    parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--cache-dir", type=Path, default=None)
+    parser.add_argument("--tensor-parallel-size", type=int, default=1)
+    parser.add_argument("--gpu-memory-utilization", type=float, default=0.90)
+    parser.add_argument("--max-model-len", type=int, default=None)
+    parser.add_argument("--enforce-eager", action="store_true")
+    parser.add_argument("--seed", type=int, default=20260523)
     parser.add_argument(
         "--local-files-only",
         action="store_true",
@@ -107,7 +105,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--trust-remote-code",
         action="store_true",
-        help="Pass trust_remote_code=True to transformers.",
+        help="Pass trust_remote_code=True to the vLLM engine.",
     )
     parser.add_argument(
         "--print-prompt",
@@ -123,54 +121,43 @@ def read_prompt(path: Path) -> str:
     return path.read_text(encoding="utf-8").strip()
 
 
-def dtype_from_name(name: str) -> str | torch.dtype:
-    if name == "auto":
-        return "auto"
-    return {
-        "float16": torch.float16,
-        "bfloat16": torch.bfloat16,
-        "float32": torch.float32,
-    }[name]
-
-
-def resolve_device(device: str | None) -> torch.device:
-    if device and device != "auto":
-        return torch.device(device)
-    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-
-def load_tokenizer_and_model(args: argparse.Namespace):
+def load_vllm_engine(args: argparse.Namespace):
     try:
-        from transformers import AutoModelForCausalLM, AutoTokenizer
+        from vllm import LLM, SamplingParams
     except ImportError as error:
         raise RuntimeError(
-            "transformers is not installed. Run `pip install -r requirements.txt`."
+            "vLLM is not installed. On a deployment machine, run "
+            "`pip install -r requirements.txt` or "
+            "`pip install -r modeling/requirements-vllm.txt`."
         ) from error
 
-    common_kwargs: dict[str, Any] = {
-        "cache_dir": str(args.cache_dir) if args.cache_dir else None,
-        "local_files_only": args.local_files_only,
+    if args.local_files_only:
+        os.environ["HF_HUB_OFFLINE"] = "1"
+        os.environ["TRANSFORMERS_OFFLINE"] = "1"
+
+    llm_kwargs: dict[str, Any] = {
+        "model": args.model_name,
         "trust_remote_code": args.trust_remote_code,
+        "dtype": args.dtype,
+        "tensor_parallel_size": args.tensor_parallel_size,
+        "gpu_memory_utilization": args.gpu_memory_utilization,
+        "seed": args.seed,
     }
-    common_kwargs = {key: value for key, value in common_kwargs.items() if value is not None}
-    tokenizer = AutoTokenizer.from_pretrained(args.model_name, **common_kwargs)
-    if tokenizer.pad_token_id is None:
-        tokenizer.pad_token = tokenizer.eos_token
+    if args.cache_dir:
+        llm_kwargs["download_dir"] = str(args.cache_dir)
+    if args.max_model_len:
+        llm_kwargs["max_model_len"] = args.max_model_len
+    if args.enforce_eager:
+        llm_kwargs["enforce_eager"] = True
 
-    dtype = dtype_from_name(args.dtype)
-    model_kwargs = dict(common_kwargs)
-    model_kwargs["dtype"] = dtype
-    try:
-        model = AutoModelForCausalLM.from_pretrained(args.model_name, **model_kwargs)
-    except TypeError:
-        model_kwargs.pop("dtype")
-        model_kwargs["torch_dtype"] = dtype
-        model = AutoModelForCausalLM.from_pretrained(args.model_name, **model_kwargs)
-
-    device = resolve_device(args.device)
-    model.to(device)
-    model.eval()
-    return tokenizer, model, device
+    llm = LLM(**llm_kwargs)
+    sampling_params = SamplingParams(
+        temperature=0.0,
+        max_tokens=args.max_new_tokens,
+        stop=["\n"],
+    )
+    tokenizer = llm.get_tokenizer()
+    return llm, sampling_params, tokenizer
 
 
 def label_prompt(utterance: str) -> str:
@@ -183,19 +170,6 @@ def label_prompt(utterance: str) -> str:
         "Return only one label: text or motion prompt.\n\n"
         f"Utterance: {utterance}\n"
         "Label:"
-    )
-
-
-def choice_prompt(utterance: str) -> str:
-    return (
-        "Classify this human utterance addressed to a humanoid robot.\n"
-        "A = text, meaning the robot should answer with speech/text only.\n"
-        "B = motion prompt, meaning the robot should perform a concrete physical action.\n"
-        f"Text cues: {TEXT_CUES}.\n"
-        f"Motion cues: {MOTION_CUES}.\n"
-        "Return only A or B.\n\n"
-        f"Utterance: {utterance}\n"
-        "Answer:"
     )
 
 
@@ -212,24 +186,19 @@ def yesno_prompt(utterance: str) -> str:
     )
 
 
-def example_answer(label: str, *, choice_mode: bool, yesno_mode: bool) -> str:
+def example_answer(label: str, *, yesno_mode: bool) -> str:
     if yesno_mode:
         return "YES" if label == "motion prompt" else "NO"
-    if choice_mode:
-        return "B" if label == "motion prompt" else "A"
     return label
 
 
 def user_prompt_for_mode(
     utterance: str,
     *,
-    choice_mode: bool,
     yesno_mode: bool,
 ) -> str:
     if yesno_mode:
         return yesno_prompt(utterance)
-    if choice_mode:
-        return choice_prompt(utterance)
     return label_prompt(utterance)
 
 
@@ -237,7 +206,6 @@ def build_messages(
     system_prompt: str,
     utterance: str,
     *,
-    choice_mode: bool = False,
     yesno_mode: bool = False,
 ) -> list[dict[str, str]]:
     messages = [{"role": "system", "content": system_prompt}]
@@ -247,7 +215,6 @@ def build_messages(
                 "role": "user",
                 "content": user_prompt_for_mode(
                     example_text,
-                    choice_mode=choice_mode,
                     yesno_mode=yesno_mode,
                 ),
             }
@@ -257,7 +224,6 @@ def build_messages(
                 "role": "assistant",
                 "content": example_answer(
                     label,
-                    choice_mode=choice_mode,
                     yesno_mode=yesno_mode,
                 ),
             }
@@ -267,7 +233,6 @@ def build_messages(
             "role": "user",
             "content": user_prompt_for_mode(
                 utterance,
-                choice_mode=choice_mode,
                 yesno_mode=yesno_mode,
             ),
         }
@@ -314,13 +279,11 @@ def render_chat_prompt(
     system_prompt: str,
     utterance: str,
     *,
-    choice_mode: bool = False,
     yesno_mode: bool = False,
 ) -> str:
     messages = build_messages(
         system_prompt,
         utterance,
-        choice_mode=choice_mode,
         yesno_mode=yesno_mode,
     )
     return tokenizer.apply_chat_template(
@@ -330,149 +293,66 @@ def render_chat_prompt(
     )
 
 
-def score_candidate_labels(
-    *,
-    tokenizer,
-    model,
-    device: torch.device,
-    prompt: str,
-    candidates: tuple[str, ...],
-) -> dict[str, float]:
-    prompt_ids = tokenizer(prompt, add_special_tokens=False)["input_ids"]
-    sequences: list[list[int]] = []
-    candidate_spans: list[tuple[int, int]] = []
-    for candidate in candidates:
-        candidate_ids = tokenizer(candidate, add_special_tokens=False)["input_ids"]
-        start = len(prompt_ids)
-        sequence = prompt_ids + candidate_ids
-        sequences.append(sequence)
-        candidate_spans.append((start, len(sequence)))
-
-    max_length = max(len(sequence) for sequence in sequences)
-    pad_id = tokenizer.pad_token_id
-    input_rows = [
-        sequence + [pad_id] * (max_length - len(sequence))
-        for sequence in sequences
-    ]
-    mask_rows = [
-        [1] * len(sequence) + [0] * (max_length - len(sequence))
-        for sequence in sequences
-    ]
-    input_ids = torch.tensor(input_rows, dtype=torch.long, device=device)
-    attention_mask = torch.tensor(mask_rows, dtype=torch.long, device=device)
-
-    with torch.inference_mode():
-        logits = model(input_ids=input_ids, attention_mask=attention_mask).logits
-
-    scores: dict[str, float] = {}
-    for row_index, candidate in enumerate(candidates):
-        start, end = candidate_spans[row_index]
-        positions = torch.arange(start - 1, end - 1, device=device)
-        targets = input_ids[row_index, start:end]
-        log_probs = torch.log_softmax(logits[row_index, positions, :].float(), dim=-1)
-        token_scores = log_probs[
-            torch.arange(targets.numel(), device=device),
-            targets,
-        ]
-        scores[candidate] = float(token_scores.mean().item())
-    return scores
-
-
-def classify_by_score(
-    *,
-    tokenizer,
-    model,
-    device: torch.device,
-    system_prompt: str,
-    utterance: str,
-) -> Prediction:
-    prompt = render_chat_prompt(tokenizer, system_prompt, utterance, choice_mode=True)
+def generate_prompts(llm, sampling_params, prompts: list[str]) -> tuple[list[str], float]:
     start = time.perf_counter()
-    scores = score_candidate_labels(
-        tokenizer=tokenizer,
-        model=model,
-        device=device,
-        prompt=prompt,
-        candidates=tuple(CHOICE_TO_LABEL),
-    )
-    if device.type == "cuda":
-        torch.cuda.synchronize(device)
+    outputs = llm.generate(prompts, sampling_params, use_tqdm=False)
     latency = time.perf_counter() - start
-    choice = max(scores, key=scores.get)
-    label = CHOICE_TO_LABEL[choice]
-    raw_output = ", ".join(
-        f"{key}({CHOICE_TO_LABEL[key]})={value:.4f}"
-        for key, value in scores.items()
-    )
-    return Prediction(
-        label=label,
-        raw_output=raw_output,
-        latency_seconds=latency,
-        scores=scores,
-    )
-
-
-def classify_by_generation(
-    *,
-    tokenizer,
-    model,
-    device: torch.device,
-    system_prompt: str,
-    utterance: str,
-    max_new_tokens: int,
-    yesno_mode: bool = False,
-) -> Prediction:
-    prompt = render_chat_prompt(
-        tokenizer,
-        system_prompt,
-        utterance,
-        yesno_mode=yesno_mode,
-    )
-    inputs = tokenizer([prompt], return_tensors="pt").to(device)
-    start = time.perf_counter()
-    with torch.inference_mode():
-        output_ids = model.generate(
-            **inputs,
-            max_new_tokens=max_new_tokens,
-            do_sample=False,
-            pad_token_id=tokenizer.eos_token_id,
-        )
-    if device.type == "cuda":
-        torch.cuda.synchronize(device)
-    latency = time.perf_counter() - start
-    generated_ids = output_ids[0, inputs.input_ids.shape[1] :]
-    raw_output = tokenizer.decode(generated_ids, skip_special_tokens=True).strip()
-    label = parse_generated_yesno(raw_output) if yesno_mode else parse_generated_label(raw_output)
-    return Prediction(label=label, raw_output=raw_output, latency_seconds=latency)
+    raw_outputs = [output.outputs[0].text.strip() for output in outputs]
+    per_prompt_latency = latency / len(prompts) if prompts else 0.0
+    return raw_outputs, per_prompt_latency
 
 
 def classify(
     *,
     tokenizer,
-    model,
-    device: torch.device,
+    llm,
+    sampling_params,
     system_prompt: str,
     utterance: str,
-    max_new_tokens: int,
     method: str,
 ) -> Prediction:
-    if method == "score":
-        return classify_by_score(
-            tokenizer=tokenizer,
-            model=model,
-            device=device,
-            system_prompt=system_prompt,
-            utterance=utterance,
-        )
-    return classify_by_generation(
+    predictions = classify_many(
         tokenizer=tokenizer,
-        model=model,
-        device=device,
+        llm=llm,
+        sampling_params=sampling_params,
         system_prompt=system_prompt,
-        utterance=utterance,
-        max_new_tokens=max_new_tokens,
-        yesno_mode=method == "yesno",
+        utterances=[utterance],
+        method=method,
     )
+    return predictions[0]
+
+
+def classify_many(
+    *,
+    tokenizer,
+    llm,
+    sampling_params,
+    system_prompt: str,
+    utterances: list[str],
+    method: str,
+) -> list[Prediction]:
+    yesno_mode = method == "yesno"
+    prompts = [
+        render_chat_prompt(
+            tokenizer,
+            system_prompt,
+            utterance,
+            yesno_mode=yesno_mode,
+        )
+        for utterance in utterances
+    ]
+    raw_outputs, per_prompt_latency = generate_prompts(llm, sampling_params, prompts)
+    predictions = []
+    for raw_output in raw_outputs:
+        label = parse_generated_yesno(raw_output) if yesno_mode else parse_generated_label(raw_output)
+        predictions.append(
+            Prediction(
+                label=label,
+                raw_output=raw_output,
+                latency_seconds=per_prompt_latency,
+            )
+        )
+    return predictions
 
 
 def read_eval_rows(path: Path, limit: int | None) -> list[dict[str, str]]:
@@ -555,49 +435,52 @@ def write_eval_outputs(
     )
 
 
-def run_eval(args: argparse.Namespace, tokenizer, model, device: torch.device, system_prompt: str, load_seconds: float) -> None:
+def run_eval(args: argparse.Namespace, tokenizer, llm, sampling_params, system_prompt: str, load_seconds: float) -> None:
     eval_path = args.eval_path or DEFAULT_EVAL_PATH
     rows = read_eval_rows(eval_path, args.limit)
+    if args.batch_size < 1:
+        raise ValueError("--batch-size must be at least 1")
     if args.warmup > 0 and rows:
         for row in rows[: args.warmup]:
             classify(
                 tokenizer=tokenizer,
-                model=model,
-                device=device,
+                llm=llm,
+                sampling_params=sampling_params,
                 system_prompt=system_prompt,
                 utterance=row["utterance"],
-                max_new_tokens=args.max_new_tokens,
                 method=args.method,
             )
 
     results: list[dict[str, Any]] = []
-    for index, row in enumerate(rows, start=1):
-        prediction = classify(
+    for start_index in range(0, len(rows), args.batch_size):
+        chunk = rows[start_index : start_index + args.batch_size]
+        predictions = classify_many(
             tokenizer=tokenizer,
-            model=model,
-            device=device,
+            llm=llm,
+            sampling_params=sampling_params,
             system_prompt=system_prompt,
-            utterance=row["utterance"],
-            max_new_tokens=args.max_new_tokens,
+            utterances=[row["utterance"] for row in chunk],
             method=args.method,
         )
-        label = normalize_label(row["label"])
-        result = {
-            "id": row["id"],
-            "utterance": row["utterance"],
-            "label": label,
-            "prediction": prediction.label,
-            "correct": prediction.label == label,
-            "latency_seconds": f"{prediction.latency_seconds:.6f}",
-            "raw_output": prediction.raw_output,
-        }
-        results.append(result)
-        print(
-            f"[{index:04d}/{len(rows):04d}] "
-            f"gold={label} pred={prediction.label} "
-            f"latency={prediction.latency_seconds:.3f}s "
-            f"text={row['utterance']}"
-        )
+        for offset, (row, prediction) in enumerate(zip(chunk, predictions), start=1):
+            index = start_index + offset
+            label = normalize_label(row["label"])
+            result = {
+                "id": row["id"],
+                "utterance": row["utterance"],
+                "label": label,
+                "prediction": prediction.label,
+                "correct": prediction.label == label,
+                "latency_seconds": f"{prediction.latency_seconds:.6f}",
+                "raw_output": prediction.raw_output,
+            }
+            results.append(result)
+            print(
+                f"[{index:04d}/{len(rows):04d}] "
+                f"gold={label} pred={prediction.label} "
+                f"latency={prediction.latency_seconds:.3f}s "
+                f"text={row['utterance']}"
+            )
 
     metrics = build_metrics(results, model_name=args.model_name, load_seconds=load_seconds)
     output_csv = args.output_csv or args.output_dir / "test_predictions.csv"
@@ -613,7 +496,7 @@ def run_eval(args: argparse.Namespace, tokenizer, model, device: torch.device, s
     print(f"Wrote metrics to {metrics_path}")
 
 
-def run_interactive(args: argparse.Namespace, tokenizer, model, device: torch.device, system_prompt: str) -> None:
+def run_interactive(args: argparse.Namespace, tokenizer, llm, sampling_params, system_prompt: str) -> None:
     print("Enter a human utterance. Press Ctrl+C or submit an empty line to exit.")
     while True:
         try:
@@ -625,11 +508,10 @@ def run_interactive(args: argparse.Namespace, tokenizer, model, device: torch.de
             break
         prediction = classify(
             tokenizer=tokenizer,
-            model=model,
-            device=device,
+            llm=llm,
+            sampling_params=sampling_params,
             system_prompt=system_prompt,
             utterance=text,
-            max_new_tokens=args.max_new_tokens,
             method=args.method,
         )
         print(f"label: {prediction.label}")
@@ -645,21 +527,20 @@ def main() -> None:
         return
 
     load_start = time.perf_counter()
-    tokenizer, model, device = load_tokenizer_and_model(args)
+    llm, sampling_params, tokenizer = load_vllm_engine(args)
     load_seconds = time.perf_counter() - load_start
-    print(f"Loaded {args.model_name} on {device} in {load_seconds:.2f}s")
+    print(f"Loaded {args.model_name} with vLLM in {load_seconds:.2f}s")
 
     if args.eval_path is not None or args.limit is not None:
-        run_eval(args, tokenizer, model, device, system_prompt, load_seconds)
+        run_eval(args, tokenizer, llm, sampling_params, system_prompt, load_seconds)
         return
     if args.text:
         prediction = classify(
             tokenizer=tokenizer,
-            model=model,
-            device=device,
+            llm=llm,
+            sampling_params=sampling_params,
             system_prompt=system_prompt,
             utterance=args.text,
-            max_new_tokens=args.max_new_tokens,
             method=args.method,
         )
         print(f"text: {args.text}")
@@ -667,7 +548,7 @@ def main() -> None:
         print(f"raw_output: {prediction.raw_output}")
         print(f"latency_seconds: {prediction.latency_seconds:.4f}")
     else:
-        run_interactive(args, tokenizer, model, device, system_prompt)
+        run_interactive(args, tokenizer, llm, sampling_params, system_prompt)
 
 
 if __name__ == "__main__":

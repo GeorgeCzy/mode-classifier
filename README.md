@@ -4,7 +4,7 @@ This repository is for classifying whether a human utterance in a human-robot co
 
 The first milestone is broad seed data generation. See `data_generation/` for dataset files, generation scripts, and progress notes.
 
-The current branch uses a locally deployed lightweight instruct LLM for direct classification. It no longer requires training a neural classifier head. See `modeling/` for the prompt, inference script, train/validation/test splits, and evaluation commands.
+The current branch uses a locally deployed lightweight instruct LLM with vLLM for direct classification. It no longer requires training a neural classifier head. See `modeling/` for the prompt, inference script, train/validation/test splits, and evaluation commands.
 
 For server setup, install the full modeling stack with:
 
@@ -12,7 +12,7 @@ For server setup, install the full modeling stack with:
 pip install -r requirements.txt
 ```
 
-Run one local LLM classification with Qwen2.5-0.5B-Instruct:
+Run one local vLLM classification with Qwen2.5-0.5B-Instruct:
 
 ```bash
 python modeling/scripts/predict_llm_instruct.py --text "Can you do a short dance?"
@@ -30,4 +30,4 @@ The default model is:
 Qwen/Qwen2.5-0.5B-Instruct
 ```
 
-Hugging Face `from_pretrained` downloads the model the first time it runs and reuses the local cache after that.
+vLLM downloads the Hugging Face model the first time it runs and reuses the local cache after that. It is the inference engine used to load the model, batch prompts, manage GPU memory, and generate the labels efficiently on a deployment server.
