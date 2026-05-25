@@ -12,13 +12,33 @@ For server setup, install the full modeling stack with:
 pip install -r requirements.txt
 ```
 
-Run one local vLLM classification with Qwen2.5-0.5B-Instruct:
+## Quick Commands
+
+Run one local vLLM classification with Qwen2.5-0.5B-Instruct. This loads the
+model, classifies one terminal-provided utterance, prints the predicted label,
+and then exits:
 
 ```bash
 python modeling/scripts/predict_llm_instruct.py --text "Can you do a short dance?"
 ```
 
-Evaluate accuracy and latency on the existing generated test split:
+Start interactive terminal classification. This loads the model once, then lets
+you repeatedly type utterances and receive labels:
+
+```bash
+python modeling/scripts/predict_llm_instruct.py
+```
+
+Start interactive timing-test classification. This keeps the same input/output
+flow, prints per-utterance end-to-end request time, and prints the average time
+when the program exits:
+
+```bash
+python modeling/scripts/predict_llm_instruct.py --timing
+```
+
+Evaluate accuracy and latency on the existing generated test split. This writes
+metrics and predictions under `modeling/artifacts/llm_instruct/`:
 
 ```bash
 python modeling/scripts/predict_llm_instruct.py --eval-path modeling/data/splits/test.csv

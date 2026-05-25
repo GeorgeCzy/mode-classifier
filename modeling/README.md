@@ -59,25 +59,72 @@ pip install -r modeling/requirements-vllm.txt
 vLLM is intended for GPU server deployment. If running from Windows, use a Linux
 server or WSL2/CUDA environment that supports vLLM.
 
-On a deployment machine:
+### Runtime Commands
+
+Single-input classification:
 
 ```bash
 python modeling/scripts/predict_llm_instruct.py --text "Can you do a short dance?"
 ```
 
-The first run downloads the model from Hugging Face and later runs reuse the local cache.
+Function: loads `Qwen/Qwen2.5-0.5B-Instruct` with vLLM, classifies the text
+passed through `--text`, prints the label, raw LLM output, and latency, then
+exits.
 
-Classify one utterance:
+Interactive terminal classification:
 
 ```bash
-python modeling/scripts/predict_llm_instruct.py --text "Point to the exit."
+python modeling/scripts/predict_llm_instruct.py
 ```
 
-The default mode asks the instruct model a yes/no question about whether concrete
-physical action is required, then maps `NO` to `text` and `YES` to
-`motion prompt`. Direct label generation is available with `--method generate`.
+Function: loads the model once, then repeatedly accepts terminal input after the
+`>` prompt and prints a label for each utterance. Submit an empty line or press
+Ctrl+C to exit.
 
-Useful vLLM options:
+Interactive timing-test classification:
+
+```bash
+python modeling/scripts/predict_llm_instruct.py --timing
+```
+
+Function: keeps the same interactive input/output flow, but also prints
+`request_elapsed_seconds` for each utterance. When the program exits, it prints
+`average_request_elapsed_seconds`, the average end-to-end time from receiving
+input to completing the LLM classification.
+
+Generated-label mode:
+
+```bash
+python modeling/scripts/predict_llm_instruct.py --method generate --text "Point to the exit."
+```
+
+Function: asks the model to emit `text` or `motion prompt` directly. The default
+method is `yesno`, which asks whether concrete physical action is required and
+maps `NO` to `text` and `YES` to `motion prompt`.
+
+Full test-set evaluation:
+
+```bash
+python modeling/scripts/predict_llm_instruct.py \
+  --eval-path modeling/data/splits/test.csv
+```
+
+Function: runs the classifier on the generated test split, prints progress,
+computes accuracy/confusion matrix/latency metrics, and writes outputs under
+`modeling/artifacts/llm_instruct/`.
+
+Quick 20-row smoke evaluation:
+
+```bash
+python modeling/scripts/predict_llm_instruct.py \
+  --eval-path modeling/data/splits/test.csv \
+  --limit 20
+```
+
+Function: verifies the inference path on 20 test examples without running the
+full 200-row evaluation.
+
+Evaluation with explicit vLLM options:
 
 ```bash
 python modeling/scripts/predict_llm_instruct.py \
@@ -87,23 +134,11 @@ python modeling/scripts/predict_llm_instruct.py \
   --gpu-memory-utilization 0.90
 ```
 
-Start an interactive prompt:
+Function: runs evaluation while controlling batch size, tensor parallelism, and
+GPU memory utilization.
 
-```bash
-python modeling/scripts/predict_llm_instruct.py
-```
-
-Evaluate accuracy and latency on the generated test split:
-
-```bash
-python modeling/scripts/predict_llm_instruct.py --eval-path modeling/data/splits/test.csv
-```
-
-For a quick smoke test:
-
-```bash
-python modeling/scripts/predict_llm_instruct.py --eval-path modeling/data/splits/test.csv --limit 20
-```
+The first run downloads the model from Hugging Face and later runs reuse the
+local cache.
 
 Outputs are written under:
 

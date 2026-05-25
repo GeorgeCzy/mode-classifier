@@ -5,7 +5,7 @@ joblib>=1.3
 torch>=2.2
 transformers>=4.51
 accelerate>=0.33
-vllm>=0.8.5
+vllm==0.10.2
 sentence-transformers>=3.0
 gpustat>=1.1
 wandb>=0.17

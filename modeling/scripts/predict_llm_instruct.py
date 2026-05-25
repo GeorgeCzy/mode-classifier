@@ -112,6 +112,14 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Print the system prompt and exit.",
     )
+    parser.add_argument(
+        "--timing",
+        action="store_true",
+        help=(
+            "Print end-to-end request timing for each input and the average "
+            "timing when interactive mode exits."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -498,6 +506,7 @@ def run_eval(args: argparse.Namespace, tokenizer, llm, sampling_params, system_p
 
 def run_interactive(args: argparse.Namespace, tokenizer, llm, sampling_params, system_prompt: str) -> None:
     print("Enter a human utterance. Press Ctrl+C or submit an empty line to exit.")
+    request_latencies: list[float] = []
     while True:
         try:
             text = input("> ").strip()
@@ -506,6 +515,7 @@ def run_interactive(args: argparse.Namespace, tokenizer, llm, sampling_params, s
             break
         if not text:
             break
+        request_start = time.perf_counter()
         prediction = classify(
             tokenizer=tokenizer,
             llm=llm,
@@ -514,9 +524,19 @@ def run_interactive(args: argparse.Namespace, tokenizer, llm, sampling_params, s
             utterance=text,
             method=args.method,
         )
+        request_elapsed = time.perf_counter() - request_start
+        if args.timing:
+            request_latencies.append(request_elapsed)
         print(f"label: {prediction.label}")
         print(f"raw_output: {prediction.raw_output}")
         print(f"latency_seconds: {prediction.latency_seconds:.4f}")
+        if args.timing:
+            print(f"request_elapsed_seconds: {request_elapsed:.4f}")
+    if args.timing and request_latencies:
+        print(
+            "average_request_elapsed_seconds: "
+            f"{statistics.fmean(request_latencies):.4f}"
+        )
 
 
 def main() -> None:
@@ -535,6 +555,7 @@ def main() -> None:
         run_eval(args, tokenizer, llm, sampling_params, system_prompt, load_seconds)
         return
     if args.text:
+        request_start = time.perf_counter()
         prediction = classify(
             tokenizer=tokenizer,
             llm=llm,
@@ -543,10 +564,13 @@ def main() -> None:
             utterance=args.text,
             method=args.method,
         )
+        request_elapsed = time.perf_counter() - request_start
         print(f"text: {args.text}")
         print(f"label: {prediction.label}")
         print(f"raw_output: {prediction.raw_output}")
         print(f"latency_seconds: {prediction.latency_seconds:.4f}")
+        if args.timing:
+            print(f"request_elapsed_seconds: {request_elapsed:.4f}")
     else:
         run_interactive(args, tokenizer, llm, sampling_params, system_prompt)
 
