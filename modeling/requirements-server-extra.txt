@@ -1,4 +1,4 @@
-transformers>=4.51
+transformers==4.56.1
 accelerate>=0.33
 vllm==0.10.2
 sentence-transformers>=3.0

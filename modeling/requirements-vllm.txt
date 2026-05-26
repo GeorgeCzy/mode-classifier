@@ -6,4 +6,7 @@
 # stack that requires a newer driver.
 --extra-index-url https://download.pytorch.org/whl/cu128
 vllm==0.10.2
-transformers>=4.51
+# vLLM 0.10.2 is tested against the 4.56.x transformers line. Newer
+# transformers versions can remove tokenizer attributes used by this vLLM
+# release.
+transformers==4.56.1
