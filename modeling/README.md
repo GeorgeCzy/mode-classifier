@@ -102,6 +102,13 @@ Function: asks the model to emit `text` or `motion prompt` directly. The default
 method is `yesno`, which asks whether concrete physical action is required and
 maps `NO` to `text` and `YES` to `motion prompt`.
 
+The classifier is few-shot, not zero-shot. Each request includes the system
+prompt plus curated user/assistant examples covering ordinary text questions,
+capability questions, short motion commands, gesture requests, and negated
+motion requests. The yes/no format is used because `text` can otherwise be
+misread by small models as the input format rather than the verbal-response
+class.
+
 Full test-set evaluation:
 
 ```bash
@@ -131,11 +138,14 @@ python modeling/scripts/predict_llm_instruct.py \
   --eval-path modeling/data/splits/test.csv \
   --batch-size 16 \
   --tensor-parallel-size 1 \
-  --gpu-memory-utilization 0.90
+  --gpu-memory-utilization 0.90 \
+  --max-model-len 4096
 ```
 
 Function: runs evaluation while controlling batch size, tensor parallelism, and
-GPU memory utilization.
+GPU memory utilization. The default `--max-model-len` is 4096 because this
+classification prompt is short; this avoids allocating a 32768-token KV cache
+for a binary classification task.
 
 The first run downloads the model from Hugging Face and later runs reuse the
 local cache.

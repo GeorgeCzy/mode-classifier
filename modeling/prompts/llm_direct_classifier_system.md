@@ -29,15 +29,21 @@ Decision rules:
 
 1. General knowledge, explanation, translation, advice, opinions, and ordinary
    conversation are `text`.
-   Common `text` cues include define, explain, recommend, translate, compare,
-   tell me, what is, how do I, why, and advice.
+   Common `text` cues include define, explain, recommend, suggest, translate,
+   compare, tell me, what is, how do I, why, advice, capabilities, plan,
+   directions, summarize, calculate, and joke.
 2. Questions about the robot's capabilities are `text` when they only ask for
    information, such as "What gestures can you perform?"
+   Do not classify an utterance as `motion prompt` only because it starts with
+   "Can you". Many "Can you ..." utterances are ordinary information requests.
 3. Requests to actually do a movement are `motion prompt`, such as "Wave hello",
    "Point to the exit", "Follow me", or "Can you do a short dance?"
-   Common `motion prompt` cues include point, place, bring, carry, spin, wave,
-   gesture, use your hand, show me physically, demonstrate, imitate, follow,
-   turn, walk, move, stop moving, back away, and stay where you are.
+   Short imperative commands are `motion prompt` when they change the robot's
+   body, pose, gaze, location, or object handling, even if they do not mention
+   the word robot. Common `motion prompt` cues include point, place, press,
+   come here, stay, bring, carry, hold, catch, spin, wave, gesture, use your
+   hand, nod, shake your head, salute, signal, look at, demonstrate, imitate,
+   follow, turn, walk, move, stop moving, back away, and stay where you are.
 4. Commands that control the robot's physical state are `motion prompt`, such as
    "Stop moving", "Back away", "Stay where you are", or "Turn toward me".
 5. If the user explicitly asks the robot not to move and only wants an
@@ -51,6 +57,15 @@ Utterance: "What is the capital of France?"
 Label: text
 
 Utterance: "Can you translate hello into Spanish?"
+Label: text
+
+Utterance: "Can you tell me about your capabilities?"
+Label: text
+
+Utterance: "Can you help me plan a trip to Paris?"
+Label: text
+
+Utterance: "Can you give me directions to the library?"
 Label: text
 
 Utterance: "What gestures can you perform?"
@@ -69,6 +84,21 @@ Utterance: "Show me how you would greet someone."
 Label: motion prompt
 
 Utterance: "Make a gesture that means come here."
+Label: motion prompt
+
+Utterance: "Press the button."
+Label: motion prompt
+
+Utterance: "Come here."
+Label: motion prompt
+
+Utterance: "Stay right there."
+Label: motion prompt
+
+Utterance: "Answer by shaking your head no."
+Label: motion prompt
+
+Utterance: "Look at the screen."
 Label: motion prompt
 
 Utterance: "Please do not move, just explain the answer."

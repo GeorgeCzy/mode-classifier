@@ -21,11 +21,13 @@ DEFAULT_EVAL_PATH = ROOT / "modeling" / "data" / "splits" / "test.csv"
 DEFAULT_OUTPUT_DIR = ROOT / "modeling" / "artifacts" / "llm_instruct"
 VALID_LABELS = ("text", "motion prompt")
 TEXT_CUES = (
-    "define, explain, recommend, translate, compare, tell me, what is, how do I, advice"
+    "define, explain, recommend, suggest, translate, compare, tell me, what is, "
+    "how do I, advice, capabilities, plan, directions, summarize, calculate, joke"
 )
 MOTION_CUES = (
-    "point, place, bring, carry, spin, wave, gesture, use your hand, demonstrate, "
-    "follow, turn, move, stop"
+    "point, place, press, come here, stay, bring, carry, hold, catch, spin, wave, "
+    "gesture, use your hand, nod, shake your head, salute, signal, look at, "
+    "demonstrate, follow, turn, move, stop"
 )
 LABEL_MAP = {
     "chat": "text",
@@ -47,6 +49,22 @@ FEW_SHOT_EXAMPLES = (
     ("Show me how you would greet someone.", "motion prompt"),
     ("Use your hand to gesture come here.", "motion prompt"),
     ("Can you recommend a book for learning Python?", "text"),
+    ("Can you tell me about your capabilities?", "text"),
+    ("What gestures can you perform?", "text"),
+    ("Can you help me plan a trip to Paris?", "text"),
+    ("Can you tell me a fun fact?", "text"),
+    ("Can you give me directions to the library?", "text"),
+    ("Can you understand multiple languages?", "text"),
+    ("Press the button.", "motion prompt"),
+    ("Come here.", "motion prompt"),
+    ("Stay right there.", "motion prompt"),
+    ("Salute me formally.", "motion prompt"),
+    ("Signal me when it is safe.", "motion prompt"),
+    ("Answer by shaking your head no.", "motion prompt"),
+    ("Look at the screen.", "motion prompt"),
+    ("Hold this for me.", "motion prompt"),
+    ("Catch this.", "motion prompt"),
+    ("Show me the motion for stirring a pot.", "motion prompt"),
     ("Please do not move, just explain the answer.", "text"),
 )
 
@@ -94,7 +112,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--cache-dir", type=Path, default=None)
     parser.add_argument("--tensor-parallel-size", type=int, default=1)
     parser.add_argument("--gpu-memory-utilization", type=float, default=0.90)
-    parser.add_argument("--max-model-len", type=int, default=None)
+    parser.add_argument("--max-model-len", type=int, default=4096)
     parser.add_argument("--enforce-eager", action="store_true")
     parser.add_argument("--seed", type=int, default=20260523)
     parser.add_argument(
@@ -177,6 +195,8 @@ def label_prompt(utterance: str) -> str:
         "Classify this human utterance addressed to a humanoid robot.\n"
         "All inputs are text strings. The question is whether the robot should "
         "answer verbally or physically act.\n"
+        "Do not use the phrase 'Can you' by itself as evidence for action.\n"
+        "Short imperative commands are action requests when they change the robot's body, pose, gaze, location, or object handling.\n"
         f"Text cues: {TEXT_CUES}.\n"
         f"Motion cues: {MOTION_CUES}.\n"
         "Return only one label: text or motion prompt.\n\n"
@@ -190,6 +210,8 @@ def yesno_prompt(utterance: str) -> str:
         "Classify this human utterance addressed to a humanoid robot.\n"
         "Does the utterance ask the robot to perform or change a concrete physical action?\n"
         "Answer YES for motion prompt. Answer NO for text.\n"
+        "Do not use the phrase 'Can you' by itself as evidence for action.\n"
+        "Short imperative commands are YES when they change the robot's body, pose, gaze, location, or object handling.\n"
         f"Text cues: {TEXT_CUES}.\n"
         f"Motion cues: {MOTION_CUES}.\n"
         "Return only YES or NO.\n\n"
