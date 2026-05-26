@@ -105,9 +105,10 @@ maps `NO` to `text` and `YES` to `motion prompt`.
 The classifier is few-shot, not zero-shot. Each request includes the system
 prompt plus curated user/assistant examples covering ordinary text questions,
 capability questions, short motion commands, gesture requests, and negated
-motion requests. The yes/no format is used because `text` can otherwise be
-misread by small models as the input format rather than the verbal-response
-class.
+motion requests. The examples use a compact utterance/answer format so the
+rendered prompt fits the default 4096-token context. The yes/no format is used
+because `text` can otherwise be misread by small models as the input format
+rather than the verbal-response class.
 
 Full test-set evaluation:
 

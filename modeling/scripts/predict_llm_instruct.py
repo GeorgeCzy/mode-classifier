@@ -238,6 +238,16 @@ def user_prompt_for_mode(
     return label_prompt(utterance)
 
 
+def example_prompt_for_mode(
+    utterance: str,
+    *,
+    yesno_mode: bool,
+) -> str:
+    if yesno_mode:
+        return f"Utterance: {utterance}\nAnswer:"
+    return f"Utterance: {utterance}\nLabel:"
+
+
 def build_messages(
     system_prompt: str,
     utterance: str,
@@ -249,7 +259,7 @@ def build_messages(
         messages.append(
             {
                 "role": "user",
-                "content": user_prompt_for_mode(
+                "content": example_prompt_for_mode(
                     example_text,
                     yesno_mode=yesno_mode,
                 ),
@@ -327,6 +337,49 @@ def render_chat_prompt(
         tokenize=False,
         add_generation_prompt=True,
     )
+
+
+def count_prompt_tokens(tokenizer, prompt: str) -> int:
+    return len(tokenizer.encode(prompt, add_special_tokens=False))
+
+
+def ensure_prompt_fits_model(
+    *,
+    tokenizer,
+    system_prompt: str,
+    utterances: list[str],
+    method: str,
+    max_model_len: int | None,
+    max_new_tokens: int,
+) -> None:
+    if not max_model_len or not utterances:
+        return
+
+    yesno_mode = method == "yesno"
+    longest_length = 0
+    longest_utterance = ""
+    for utterance in utterances:
+        prompt = render_chat_prompt(
+            tokenizer,
+            system_prompt,
+            utterance,
+            yesno_mode=yesno_mode,
+        )
+        length = count_prompt_tokens(tokenizer, prompt)
+        if length > longest_length:
+            longest_length = length
+            longest_utterance = utterance
+
+    budget = max_model_len - max_new_tokens
+    if longest_length > budget:
+        raise ValueError(
+            "Rendered prompt is too long for the configured model context. "
+            f"Longest prompt has {longest_length} tokens, while the usable "
+            f"budget is {budget} tokens from --max-model-len {max_model_len} "
+            f"minus --max-new-tokens {max_new_tokens}. Increase "
+            "--max-model-len or reduce the prompt/few-shot examples. "
+            f"Longest utterance: {longest_utterance!r}"
+        )
 
 
 def generate_prompts(llm, sampling_params, prompts: list[str]) -> tuple[list[str], float]:
@@ -476,6 +529,14 @@ def run_eval(args: argparse.Namespace, tokenizer, llm, sampling_params, system_p
     rows = read_eval_rows(eval_path, args.limit)
     if args.batch_size < 1:
         raise ValueError("--batch-size must be at least 1")
+    ensure_prompt_fits_model(
+        tokenizer=tokenizer,
+        system_prompt=system_prompt,
+        utterances=[row["utterance"] for row in rows],
+        method=args.method,
+        max_model_len=args.max_model_len,
+        max_new_tokens=args.max_new_tokens,
+    )
     if args.warmup > 0 and rows:
         for row in rows[: args.warmup]:
             classify(
@@ -543,6 +604,14 @@ def run_interactive(args: argparse.Namespace, tokenizer, llm, sampling_params, s
             break
         if not text:
             break
+        ensure_prompt_fits_model(
+            tokenizer=tokenizer,
+            system_prompt=system_prompt,
+            utterances=[text],
+            method=args.method,
+            max_model_len=args.max_model_len,
+            max_new_tokens=args.max_new_tokens,
+        )
         request_start = time.perf_counter()
         prediction = classify(
             tokenizer=tokenizer,
@@ -583,6 +652,14 @@ def main() -> None:
         run_eval(args, tokenizer, llm, sampling_params, system_prompt, load_seconds)
         return
     if args.text:
+        ensure_prompt_fits_model(
+            tokenizer=tokenizer,
+            system_prompt=system_prompt,
+            utterances=[args.text],
+            method=args.method,
+            max_model_len=args.max_model_len,
+            max_new_tokens=args.max_new_tokens,
+        )
         request_start = time.perf_counter()
         prediction = classify(
             tokenizer=tokenizer,
