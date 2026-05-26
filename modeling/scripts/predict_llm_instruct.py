@@ -41,12 +41,16 @@ FEW_SHOT_EXAMPLES = (
     ("What is the capital of France?", "text"),
     ("How do I manage stress effectively?", "text"),
     ("Point to the exit.", "motion prompt"),
+    ("Point at your chest, then point toward the doorway.", "motion prompt"),
     ("Place the package on the table.", "motion prompt"),
     ("Can you translate hello into Spanish?", "text"),
     ("What is the difference between TCP and UDP?", "text"),
     ("Can you do a short dance?", "motion prompt"),
     ("Spin around slowly.", "motion prompt"),
+    ("Follow me down the hallway.", "motion prompt"),
+    ("Place your palm on your chest.", "motion prompt"),
     ("Can you define empathy?", "text"),
+    ("Explain neural networks in simple terms.", "text"),
     ("Show me how you would greet someone.", "motion prompt"),
     ("Use your hand to gesture come here.", "motion prompt"),
     ("Can you recommend a book for learning Python?", "text"),
@@ -56,16 +60,31 @@ FEW_SHOT_EXAMPLES = (
     ("Can you tell me a fun fact?", "text"),
     ("Can you give me directions to the library?", "text"),
     ("Can you understand multiple languages?", "text"),
+    ("Tell me a riddle.", "text"),
+    ("Suggest a few healthy breakfast options.", "text"),
+    ("I feel anxious today; can you say something encouraging?", "text"),
+    ("Define photosynthesis for a child.", "text"),
     ("Press the button.", "motion prompt"),
     ("Come here.", "motion prompt"),
+    ("Move closer and look at the display.", "motion prompt"),
     ("Stay right there.", "motion prompt"),
+    ("Remain still while I calibrate you.", "motion prompt"),
+    ("Keep your position until I come back.", "motion prompt"),
     ("Salute me formally.", "motion prompt"),
     ("Signal me when it is safe.", "motion prompt"),
+    ("Freeze in place.", "motion prompt"),
     ("Answer by shaking your head no.", "motion prompt"),
     ("Look at the screen.", "motion prompt"),
     ("Hold this for me.", "motion prompt"),
+    ("Hold this item in your hand.", "motion prompt"),
     ("Catch this.", "motion prompt"),
     ("Show me the motion for stirring a pot.", "motion prompt"),
+    ("Can you give me advice for salary negotiation?", "text"),
+    ("How should I cook a steak at home?", "text"),
+    ("Can you explain how solar power works?", "text"),
+    ("How quickly can you process visual information?", "text"),
+    ("What are safe steps for troubleshooting a laptop?", "text"),
+    ("What languages are you able to understand?", "text"),
     ("Please do not move, just explain the answer.", "text"),
 )
 
@@ -215,10 +234,12 @@ def label_prompt(utterance: str) -> str:
 
 def yesno_prompt(utterance: str) -> str:
     return (
-        "Does this utterance clearly ask the humanoid robot to perform or "
-        "change a concrete physical action?\n"
-        "Answer YES only for concrete robot action. Answer NO for speech/text, "
-        "information, advice, capability questions, or ambiguous cases.\n\n"
+        "Does this utterance ask the humanoid robot to perform or change a "
+        "concrete physical action?\n"
+        "Answer YES for direct physical commands such as point, follow, come "
+        "here, hold, stand still, freeze, wave, look, put your hand, or move. "
+        "Answer NO for speech/text, information, advice, capability questions, "
+        "or ambiguous cases.\n\n"
         f"Utterance: {utterance}\n"
         "Answer:"
     )
