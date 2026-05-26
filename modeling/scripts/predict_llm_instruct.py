@@ -78,7 +78,7 @@ FEW_SHOT_EXAMPLES = (
     ("Hold this for me.", "motion prompt"),
     ("Hold this item in your hand.", "motion prompt"),
     ("Catch this.", "motion prompt"),
-    ("Show me the motion for stirring a pot.", "motion prompt"),
+    ("Demonstrate a stirring motion with your hand.", "motion prompt"),
     ("Can you give me advice for salary negotiation?", "text"),
     ("How should I cook a steak at home?", "text"),
     ("Can you explain how solar power works?", "text"),
@@ -106,7 +106,7 @@ def parse_args() -> argparse.Namespace:
         "--yesno-prompt-path",
         type=Path,
         default=DEFAULT_YESNO_PROMPT_PATH,
-        help="System prompt used by the default yes/no classification mode.",
+        help="System prompt used by the optional yes/no classification mode.",
     )
     parser.add_argument("--text", default=None, help="Single utterance to classify.")
     parser.add_argument(
@@ -127,10 +127,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--method",
         choices=["yesno", "generate"],
-        default="yesno",
+        default="generate",
         help=(
-            "yesno asks whether concrete physical action is needed and maps the "
-            "answer to labels; generate asks the LLM to emit a label."
+            "generate asks the LLM to emit text or motion prompt directly. "
+            "yesno asks whether concrete physical action is needed and maps "
+            "the answer to labels."
         ),
     )
     parser.add_argument("--warmup", type=int, default=1)
@@ -223,6 +224,7 @@ def label_prompt(utterance: str) -> str:
         "answer verbally or physically act.\n"
         "Do not use the phrase 'Can you' by itself as evidence for action.\n"
         "Short imperative commands are action requests when they change the robot's body, pose, gaze, location, or object handling.\n"
+        "Direct physical commands such as follow me, hold this, stand still, freeze, point, wave, look, or put your hand are motion prompt, not ambiguous.\n"
         "If the utterance is ambiguous or could be handled either verbally or physically, choose text.\n"
         f"Text cues: {TEXT_CUES}.\n"
         f"Motion cues: {MOTION_CUES}.\n"

@@ -16,7 +16,7 @@ The prompt is stored in:
 modeling/prompts/llm_direct_classifier_system.md
 ```
 
-The default yes/no mode uses:
+The optional yes/no mode uses:
 
 ```text
 modeling/prompts/llm_direct_classifier_yesno_system.md
@@ -104,17 +104,18 @@ Generated-label mode:
 python modeling/scripts/predict_llm_instruct.py --method generate --text "Point to the exit."
 ```
 
-Function: asks the model to emit `text` or `motion prompt` directly. The default
-method is `yesno`, which asks whether concrete physical action is required and
-maps `NO` to `text` and `YES` to `motion prompt`.
+Function: asks the model to emit `text` or `motion prompt` directly. This is
+also the default method. The optional `yesno` method asks whether concrete
+physical action is required and maps `NO` to `text` and `YES` to
+`motion prompt`.
 
 The classifier is few-shot, not zero-shot. Each request includes the active
 system prompt plus curated user/assistant examples covering ordinary text
 questions, capability questions, short motion commands, gesture requests, and
 negated motion requests. The examples use a compact utterance/answer format so
-the rendered prompt fits the default 4096-token context. The default yes/no mode
-uses its own system prompt so it does not conflict with the generated-label
-mode's `text` / `motion prompt` output contract.
+the rendered prompt fits the default 4096-token context. Direct generated-label
+classification is the default because it has been more stable for the 0.5B
+model than the yes/no formulation.
 
 Full test-set evaluation:
 
