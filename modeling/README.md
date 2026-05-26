@@ -7,7 +7,7 @@ The active branch classifies each utterance directly with a lightweight local in
 Default local model:
 
 ```text
-Qwen/Qwen2.5-0.5B-Instruct
+Qwen/Qwen2.5-1.5B-Instruct
 ```
 
 The prompt is stored in:
@@ -26,7 +26,7 @@ from vllm import LLM, SamplingParams
 ```
 
 vLLM handles model loading, GPU memory management, prompt batching, and fast
-token generation. The model is still `Qwen/Qwen2.5-0.5B-Instruct`; vLLM is the
+token generation. The model is still `Qwen/Qwen2.5-1.5B-Instruct`; vLLM is the
 engine used to run it.
 
 ## Labels
@@ -67,7 +67,7 @@ Single-input classification:
 python modeling/scripts/predict_llm_instruct.py --text "Can you do a short dance?"
 ```
 
-Function: loads `Qwen/Qwen2.5-0.5B-Instruct` with vLLM, classifies the text
+Function: loads `Qwen/Qwen2.5-1.5B-Instruct` with vLLM, classifies the text
 passed through `--text`, prints the label, raw LLM output, and latency, then
 exits.
 

@@ -18,7 +18,7 @@ pip install -r requirements.txt
 
 ## Quick Commands
 
-Run one local vLLM classification with Qwen2.5-0.5B-Instruct. This loads the
+Run one local vLLM classification with Qwen2.5-1.5B-Instruct. This loads the
 model, classifies one terminal-provided utterance, prints the predicted label,
 and then exits:
 
@@ -51,7 +51,7 @@ python modeling/scripts/predict_llm_instruct.py --eval-path data_generation/data
 The default model is:
 
 ```text
-Qwen/Qwen2.5-0.5B-Instruct
+Qwen/Qwen2.5-1.5B-Instruct
 ```
 
 vLLM downloads the Hugging Face model the first time it runs and reuses the local cache after that. It is the inference engine used to load the model, batch prompts, manage GPU memory, and generate the labels efficiently on a deployment server.

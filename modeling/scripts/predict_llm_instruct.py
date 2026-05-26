@@ -15,7 +15,7 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_MODEL_NAME = "Qwen/Qwen2.5-0.5B-Instruct"
+DEFAULT_MODEL_NAME = "Qwen/Qwen2.5-1.5B-Instruct"
 DEFAULT_PROMPT_PATH = ROOT / "modeling" / "prompts" / "llm_direct_classifier_system.md"
 DEFAULT_EVAL_PATH = ROOT / "data_generation" / "data" / "raw" / "deepseek_generated_3000.csv"
 DEFAULT_OUTPUT_DIR = ROOT / "modeling" / "artifacts" / "llm_instruct"

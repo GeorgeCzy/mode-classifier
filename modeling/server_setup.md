@@ -113,6 +113,16 @@ embedding generation, and embedding-head training are GPU-oriented.
 
 ## 5. Run vLLM Direct Classifier
 
+This branch defaults to:
+
+```text
+Qwen/Qwen2.5-1.5B-Instruct
+```
+
+vLLM downloads the Hugging Face model files on the first run, including config,
+tokenizer files, and safetensors weights. Later runs reuse the local Hugging
+Face/vLLM cache.
+
 Single utterance:
 
 ```bash
