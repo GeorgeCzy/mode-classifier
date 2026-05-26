@@ -4,8 +4,8 @@ This folder contains the data generation workflow for the response-mode classifi
 
 ## Label Definitions
 
-- `chat`: The human utterance can be answered primarily with speech or text. The robot may use small natural body language, but no explicit physical action is required.
-- `motion_query`: The human utterance asks for, implies, or requires a clear robot action. This includes gestures, locomotion, object manipulation, demonstration, imitation, physical guidance, stopping, holding position, or answering nonverbally through motion.
+- `chat`: Runtime label `text`. The human utterance can be answered primarily with speech or text. The robot may use small natural body language, but no explicit physical action is required.
+- `motion_query`: Runtime label `motion prompt`. The human utterance clearly asks for, implies, or requires a clear robot action. This includes gestures, locomotion, object manipulation, demonstration, imitation, physical guidance, stopping, holding position, or answering nonverbally through motion.
 
 ## Edge Rules
 
@@ -13,6 +13,7 @@ This folder contains the data generation workflow for the response-mode classifi
 - Requests like "show me", "demonstrate", "point to", "bring me", "turn toward", "follow me", or "answer with a gesture" are `motion_query`.
 - If the user explicitly says not to move and asks for a verbal explanation, the label is `chat`.
 - Safety or control commands that change the robot's physical behavior, such as "stop moving" or "back away", are `motion_query`.
+- If an utterance is ambiguous or could reasonably be handled either through speech or action, label it `chat`. Use `motion_query` only when the wording clearly asks the robot to act now.
 
 ## Current Seed Dataset
 
@@ -31,16 +32,17 @@ The generator writes new candidates to `data/raw/` in both CSV and JSONL formats
 
 Current generated dataset:
 
-- `data/raw/deepseek_generated_2000.csv`
-- `data/raw/deepseek_generated_2000.jsonl`
-- Total examples: 2000
-- Distribution: 1000 `chat`, 1000 `motion_query`
+- `data/raw/deepseek_generated_3000.csv`
+- `data/raw/deepseek_generated_3000.jsonl`
+- Total examples: 3000
+- Distribution: 1500 `chat`, 1500 `motion_query`
 - Exact overlap with reference examples: 0
 
 Component generated datasets:
 
-- `data/raw/deepseek_generated_500.csv`
-- `data/raw/deepseek_generated_extra_1500.csv`
+- `data/raw/deepseek_generated_2000.csv`
+- `data/raw/deepseek_generated_extra_200.csv`
+- `data/raw/deepseek_generated_extra_800.csv`
 
 The script reads the API key from one of these environment variables:
 
@@ -55,9 +57,11 @@ On Windows, the script also checks persisted User and Machine environment variab
 Run this from the repository root:
 
 ```powershell
-python data_generation/scripts/generate_with_deepseek.py --total 1500 --output-stem deepseek_generated_extra_1500 --id-prefix deepseek-extra --exclude-path data_generation/data/raw/deepseek_generated_500.csv
-python data_generation/scripts/merge_datasets.py --input data_generation/data/raw/deepseek_generated_500.csv --input data_generation/data/raw/deepseek_generated_extra_1500.csv --output-stem deepseek_generated_2000 --id-prefix deepseek2000 --shuffle
-python data_generation/scripts/validate_dataset.py data_generation/data/raw/deepseek_generated_2000.csv --expect-total 2000 --require-balanced
+python data_generation/scripts/generate_with_deepseek.py --total 200 --batch-size 20 --output-stem deepseek_generated_extra_200 --id-prefix deepseek-extra200 --exclude-path data_generation/data/raw/deepseek_generated_2000.csv
+python data_generation/scripts/generate_with_deepseek.py --total 800 --batch-size 40 --output-stem deepseek_generated_extra_800 --id-prefix deepseek-extra800 --exclude-path data_generation/data/raw/deepseek_generated_2000.csv --exclude-path data_generation/data/raw/deepseek_generated_extra_200.csv
+python data_generation/scripts/merge_datasets.py --input data_generation/data/raw/deepseek_generated_2000.csv --input data_generation/data/raw/deepseek_generated_extra_200.csv --input data_generation/data/raw/deepseek_generated_extra_800.csv --output-stem deepseek_generated_3000 --id-prefix deepseek3000 --shuffle
+python data_generation/scripts/validate_dataset.py data_generation/data/raw/deepseek_generated_3000.csv --expect-total 3000 --require-balanced
+python modeling/scripts/create_splits.py --input data_generation/data/raw/deepseek_generated_3000.csv
 ```
 
 The default model is `deepseek-v4-flash`, using the OpenAI-compatible DeepSeek endpoint at `https://api.deepseek.com/chat/completions`.

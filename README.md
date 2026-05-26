@@ -6,6 +6,9 @@ The first milestone is broad seed data generation. See `data_generation/` for da
 
 The current branch uses a locally deployed lightweight instruct LLM with vLLM for direct classification. It no longer requires training a neural classifier head. See `modeling/` for the prompt, inference script, train/validation/test splits, and evaluation commands.
 
+Current generated data uses 3000 balanced examples. The default split is 2400
+train, 300 validation, and 300 test rows.
+
 For server setup, install the full modeling stack with:
 
 ```bash

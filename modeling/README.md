@@ -129,7 +129,7 @@ python modeling/scripts/predict_llm_instruct.py \
 ```
 
 Function: verifies the inference path on 20 test examples without running the
-full 200-row evaluation.
+full 300-row evaluation.
 
 Evaluation with explicit vLLM options:
 
@@ -158,7 +158,7 @@ modeling/artifacts/llm_instruct/
 
 This directory is git-ignored because prediction artifacts can be regenerated.
 
-The first 200-row test run is summarized in:
+An earlier 200-row test run is summarized in:
 
 ```text
 modeling/reports/qwen2_5_0_5b_instruct_direct.md
@@ -169,7 +169,7 @@ modeling/reports/qwen2_5_0_5b_instruct_direct.md
 Default input:
 
 ```text
-data_generation/data/raw/deepseek_generated_2000.csv
+data_generation/data/raw/deepseek_generated_3000.csv
 ```
 
 Expected columns:
@@ -264,20 +264,20 @@ Create the embedding cache:
 ```bash
 python modeling/scripts/cache_text_embeddings.py \
   --model-name Qwen/Qwen3-Embedding-0.6B \
-  --output modeling/data/embeddings/qwen3_0_6b_deepseek_2000.npz
+  --output modeling/data/embeddings/qwen3_0_6b_deepseek_3000.npz
 ```
 
 If embeddings were written but metadata failed, regenerate metadata only:
 
 ```bash
-python modeling/scripts/cache_text_embeddings.py --model-name Qwen/Qwen3-Embedding-0.6B --output modeling/data/embeddings/qwen3_0_6b_deepseek_2000.npz --metadata-only
+python modeling/scripts/cache_text_embeddings.py --model-name Qwen/Qwen3-Embedding-0.6B --output modeling/data/embeddings/qwen3_0_6b_deepseek_3000.npz --metadata-only
 ```
 
 Train the MLP head:
 
 ```bash
 python modeling/scripts/train_embedding_mlp.py \
-  --embedding-cache modeling/data/embeddings/qwen3_0_6b_deepseek_2000.npz \
+  --embedding-cache modeling/data/embeddings/qwen3_0_6b_deepseek_3000.npz \
   --use-wandb \
   --wandb-run-name qwen3-0.6b-mlp
 ```
@@ -287,7 +287,7 @@ This MLP script logs batch loss every 10 optimizer steps by default, plus train/
 If W&B online sync is unstable, use offline mode and sync later:
 
 ```bash
-python modeling/scripts/train_embedding_mlp.py --embedding-cache modeling/data/embeddings/qwen3_0_6b_deepseek_2000.npz --use-wandb --wandb-mode offline --wandb-run-name qwen3-0.6b-mlp
+python modeling/scripts/train_embedding_mlp.py --embedding-cache modeling/data/embeddings/qwen3_0_6b_deepseek_3000.npz --use-wandb --wandb-mode offline --wandb-run-name qwen3-0.6b-mlp
 ```
 
 Try the embedding model:

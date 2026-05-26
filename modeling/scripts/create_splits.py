@@ -11,7 +11,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_INPUT = ROOT / "data_generation" / "data" / "raw" / "deepseek_generated_2000.csv"
+DEFAULT_INPUT = ROOT / "data_generation" / "data" / "raw" / "deepseek_generated_3000.csv"
 DEFAULT_OUTPUT_DIR = ROOT / "modeling" / "data" / "splits"
 LABELS = {"chat", "motion_query"}
 
@@ -87,8 +87,9 @@ def write_manifest(
     splits: dict[str, list[dict[str, str]]],
     seed: int,
 ) -> None:
+    resolved_input_path = input_path.resolve()
     manifest = {
-        "input": str(input_path.relative_to(ROOT)),
+        "input": str(resolved_input_path.relative_to(ROOT)),
         "seed": seed,
         "splits": {
             name: {
@@ -107,7 +108,8 @@ def write_manifest(
 def main() -> None:
     args = parse_args()
     rng = random.Random(args.seed)
-    rows = read_rows(args.input)
+    input_path = args.input.resolve()
+    rows = read_rows(input_path)
     train, val, test = split_label_rows(
         rows,
         train_ratio=args.train_ratio,
@@ -118,7 +120,7 @@ def main() -> None:
     splits = {"train": train, "val": val, "test": test}
     for name, split_rows in splits.items():
         write_csv(args.output_dir / f"{name}.csv", split_rows)
-    write_manifest(args.output_dir, input_path=args.input, splits=splits, seed=args.seed)
+    write_manifest(args.output_dir, input_path=input_path, splits=splits, seed=args.seed)
 
     for name, split_rows in splits.items():
         labels = Counter(row["label"] for row in split_rows)

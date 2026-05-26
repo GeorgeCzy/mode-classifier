@@ -325,7 +325,7 @@ def main() -> None:
     for exclude_path in args.exclude_path:
         excluded_rows = read_dataset(exclude_path)
         seen.update(normalized_utterances(excluded_rows))
-        print(f"Loaded {len(excluded_rows)} exclusion rows from {exclude_path}")
+        print(f"Loaded {len(excluded_rows)} exclusion rows from {exclude_path}", flush=True)
 
     attempt = 0
     while sum(Counter(example["label"] for example in generated).values()) < args.total:
@@ -377,12 +377,13 @@ def main() -> None:
                 counts = Counter(example["label"] for example in generated)
                 print(
                     f"Batch {attempt}, retry {retry}: added {added}; "
-                    f"counts={dict(counts)}"
+                    f"counts={dict(counts)}",
+                    flush=True,
                 )
                 break
             except (urllib.error.URLError, urllib.error.HTTPError, ValueError, KeyError, json.JSONDecodeError) as error:
                 last_error = error
-                print(f"Batch {attempt}, retry {retry} failed: {error}")
+                print(f"Batch {attempt}, retry {retry} failed: {error}", flush=True)
                 time.sleep(args.sleep_seconds * retry)
         else:
             raise RuntimeError(f"Failed to generate batch {attempt}") from last_error
@@ -398,9 +399,9 @@ def main() -> None:
         example["id"] = f"{args.id_prefix}-{index:05d}"
 
     jsonl_path, csv_path = write_outputs(generated, args.output_stem)
-    print(f"Wrote {len(generated)} examples to {jsonl_path}")
-    print(f"Wrote {len(generated)} examples to {csv_path}")
-    print(f"Label distribution: {dict(final_counts)}")
+    print(f"Wrote {len(generated)} examples to {jsonl_path}", flush=True)
+    print(f"Wrote {len(generated)} examples to {csv_path}", flush=True)
+    print(f"Label distribution: {dict(final_counts)}", flush=True)
 
 
 if __name__ == "__main__":

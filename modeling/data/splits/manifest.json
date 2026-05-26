@@ -1,26 +1,26 @@
 {
-  "input": "data_generation\\data\\raw\\deepseek_generated_2000.csv",
+  "input": "data_generation\\data\\raw\\deepseek_generated_3000.csv",
   "seed": 20260518,
   "splits": {
     "train": {
-      "rows": 1600,
+      "rows": 2400,
       "labels": {
-        "chat": 800,
-        "motion_query": 800
+        "chat": 1200,
+        "motion_query": 1200
       }
     },
     "val": {
-      "rows": 200,
+      "rows": 300,
       "labels": {
-        "chat": 100,
-        "motion_query": 100
+        "chat": 150,
+        "motion_query": 150
       }
     },
     "test": {
-      "rows": 200,
+      "rows": 300,
       "labels": {
-        "motion_query": 100,
-        "chat": 100
+        "motion_query": 150,
+        "chat": 150
       }
     }
   }

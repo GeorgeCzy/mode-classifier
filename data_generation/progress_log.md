@@ -19,3 +19,12 @@
 - Added dataset exclusion and merge utilities for larger generation runs.
 - Generated `deepseek_generated_extra_1500.csv` and merged it with the first 500 examples.
 - Validated `deepseek_generated_2000.csv`: 2000 unique utterances, 1000 `chat`, 1000 `motion_query`, and no exact overlap with reference examples.
+
+## 2026-05-26
+
+- Updated the DeepSeek generation prompts to match the active vLLM classifier boundary rules.
+- Added the runtime-label mapping: `chat` -> `text`, `motion_query` -> `motion prompt`.
+- Added the ambiguity rule: if an utterance could reasonably be handled verbally or physically, label it `chat`.
+- Generated `deepseek_generated_extra_200.csv` and `deepseek_generated_extra_800.csv` with the updated API prompts.
+- Merged the existing 2000 examples with the new 1000 examples into `deepseek_generated_3000.csv`.
+- Validated `deepseek_generated_3000.csv`: 3000 unique utterances, 1500 `chat`, 1500 `motion_query`.

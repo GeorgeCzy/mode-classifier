@@ -176,10 +176,10 @@ Example:
 export CUDA_VISIBLE_DEVICES=1
 python modeling/scripts/cache_text_embeddings.py \
   --model-name Qwen/Qwen3-Embedding-0.6B \
-  --output modeling/data/embeddings/qwen3_0_6b_deepseek_2000.npz
+  --output modeling/data/embeddings/qwen3_0_6b_deepseek_3000.npz
 
 python modeling/scripts/train_embedding_mlp.py \
-  --embedding-cache modeling/data/embeddings/qwen3_0_6b_deepseek_2000.npz \
+  --embedding-cache modeling/data/embeddings/qwen3_0_6b_deepseek_3000.npz \
   --use-wandb \
   --wandb-run-name qwen3-0.6b-mlp
 ```
@@ -189,5 +189,5 @@ The MLP script logs `train/batch_loss` every 10 optimizer steps by default. Use 
 If W&B has network issues, use offline mode:
 
 ```bash
-python modeling/scripts/train_embedding_mlp.py --embedding-cache modeling/data/embeddings/qwen3_0_6b_deepseek_2000.npz --use-wandb --wandb-mode offline --wandb-run-name qwen3-0.6b-mlp
+python modeling/scripts/train_embedding_mlp.py --embedding-cache modeling/data/embeddings/qwen3_0_6b_deepseek_3000.npz --use-wandb --wandb-mode offline --wandb-run-name qwen3-0.6b-mlp
 ```

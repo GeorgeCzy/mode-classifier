@@ -11,8 +11,8 @@ import numpy as np
 
 
 ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_INPUT = ROOT / "data_generation" / "data" / "raw" / "deepseek_generated_2000.csv"
-DEFAULT_OUTPUT = ROOT / "modeling" / "data" / "embeddings" / "qwen3_0_6b_deepseek_2000.npz"
+DEFAULT_INPUT = ROOT / "data_generation" / "data" / "raw" / "deepseek_generated_3000.csv"
+DEFAULT_OUTPUT = ROOT / "modeling" / "data" / "embeddings" / "qwen3_0_6b_deepseek_3000.npz"
 DEFAULT_MODEL = "Qwen/Qwen3-Embedding-0.6B"
 DEFAULT_TEXT_PREFIX = "Represent this human-robot utterance for response mode classification: "
 
