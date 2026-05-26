@@ -142,6 +142,10 @@ def load_vllm_engine(args: argparse.Namespace):
     if args.local_files_only:
         os.environ["HF_HUB_OFFLINE"] = "1"
         os.environ["TRANSFORMERS_OFFLINE"] = "1"
+    # FlashInfer sampling may JIT-compile CUDA kernels and require nvcc. Many
+    # inference servers have an NVIDIA driver but no CUDA toolkit, so default to
+    # vLLM's native sampler unless the deployment explicitly opts into FlashInfer.
+    os.environ.setdefault("VLLM_USE_FLASHINFER_SAMPLER", "0")
 
     llm_kwargs: dict[str, Any] = {
         "model": args.model_name,
