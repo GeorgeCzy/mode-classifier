@@ -48,8 +48,9 @@ Decision rules:
    "Stop moving", "Back away", "Stay where you are", or "Turn toward me".
 5. If the user explicitly asks the robot not to move and only wants an
    explanation, classify as `text`.
-6. When an utterance is ambiguous, choose `motion prompt` only if the wording
-   naturally asks the robot to act now. Otherwise choose `text`.
+6. When an utterance is ambiguous or could reasonably be handled either through
+   speech or action, prefer `text`. Choose `motion prompt` only when the wording
+   clearly asks the robot to act now.
 
 Examples:
 
