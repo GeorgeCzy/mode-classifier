@@ -16,6 +16,12 @@ The prompt is stored in:
 modeling/prompts/llm_direct_classifier_system.md
 ```
 
+The default yes/no mode uses:
+
+```text
+modeling/prompts/llm_direct_classifier_yesno_system.md
+```
+
 ## What vLLM Does Here
 
 vLLM is the runtime that serves the downloaded instruct model for inference. In
@@ -102,13 +108,13 @@ Function: asks the model to emit `text` or `motion prompt` directly. The default
 method is `yesno`, which asks whether concrete physical action is required and
 maps `NO` to `text` and `YES` to `motion prompt`.
 
-The classifier is few-shot, not zero-shot. Each request includes the system
-prompt plus curated user/assistant examples covering ordinary text questions,
-capability questions, short motion commands, gesture requests, and negated
-motion requests. The examples use a compact utterance/answer format so the
-rendered prompt fits the default 4096-token context. The yes/no format is used
-because `text` can otherwise be misread by small models as the input format
-rather than the verbal-response class.
+The classifier is few-shot, not zero-shot. Each request includes the active
+system prompt plus curated user/assistant examples covering ordinary text
+questions, capability questions, short motion commands, gesture requests, and
+negated motion requests. The examples use a compact utterance/answer format so
+the rendered prompt fits the default 4096-token context. The default yes/no mode
+uses its own system prompt so it does not conflict with the generated-label
+mode's `text` / `motion prompt` output contract.
 
 Full test-set evaluation:
 

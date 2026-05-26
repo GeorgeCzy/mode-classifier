@@ -17,6 +17,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_MODEL_NAME = "Qwen/Qwen2.5-0.5B-Instruct"
 DEFAULT_PROMPT_PATH = ROOT / "modeling" / "prompts" / "llm_direct_classifier_system.md"
+DEFAULT_YESNO_PROMPT_PATH = ROOT / "modeling" / "prompts" / "llm_direct_classifier_yesno_system.md"
 DEFAULT_EVAL_PATH = ROOT / "modeling" / "data" / "splits" / "test.csv"
 DEFAULT_OUTPUT_DIR = ROOT / "modeling" / "artifacts" / "llm_instruct"
 VALID_LABELS = ("text", "motion prompt")
@@ -82,6 +83,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--model-name", default=DEFAULT_MODEL_NAME)
     parser.add_argument("--prompt-path", type=Path, default=DEFAULT_PROMPT_PATH)
+    parser.add_argument(
+        "--yesno-prompt-path",
+        type=Path,
+        default=DEFAULT_YESNO_PROMPT_PATH,
+        help="System prompt used by the default yes/no classification mode.",
+    )
     parser.add_argument("--text", default=None, help="Single utterance to classify.")
     parser.add_argument(
         "--eval-path",
@@ -208,15 +215,10 @@ def label_prompt(utterance: str) -> str:
 
 def yesno_prompt(utterance: str) -> str:
     return (
-        "Classify this human utterance addressed to a humanoid robot.\n"
-        "Does the utterance ask the robot to perform or change a concrete physical action?\n"
-        "Answer YES for motion prompt. Answer NO for text.\n"
-        "Do not use the phrase 'Can you' by itself as evidence for action.\n"
-        "Short imperative commands are YES when they change the robot's body, pose, gaze, location, or object handling.\n"
-        "If the utterance is ambiguous or could be handled either verbally or physically, answer NO.\n"
-        f"Text cues: {TEXT_CUES}.\n"
-        f"Motion cues: {MOTION_CUES}.\n"
-        "Return only YES or NO.\n\n"
+        "Does this utterance clearly ask the humanoid robot to perform or "
+        "change a concrete physical action?\n"
+        "Answer YES only for concrete robot action. Answer NO for speech/text, "
+        "information, advice, capability questions, or ambiguous cases.\n\n"
         f"Utterance: {utterance}\n"
         "Answer:"
     )
@@ -244,7 +246,12 @@ def example_prompt_for_mode(
     yesno_mode: bool,
 ) -> str:
     if yesno_mode:
-        return f"Utterance: {utterance}\nAnswer:"
+        return (
+            "Does this utterance clearly ask for concrete robot action? "
+            "Answer YES for motion prompt, NO for text or ambiguous.\n"
+            f"Utterance: {utterance}\n"
+            "Answer:"
+        )
     return f"Utterance: {utterance}\nLabel:"
 
 
@@ -638,7 +645,9 @@ def run_interactive(args: argparse.Namespace, tokenizer, llm, sampling_params, s
 
 def main() -> None:
     args = parse_args()
-    system_prompt = read_prompt(args.prompt_path)
+    label_system_prompt = read_prompt(args.prompt_path)
+    yesno_system_prompt = read_prompt(args.yesno_prompt_path)
+    system_prompt = yesno_system_prompt if args.method == "yesno" else label_system_prompt
     if args.print_prompt:
         print(system_prompt)
         return
