@@ -119,20 +119,21 @@ Single utterance:
 python modeling/scripts/predict_llm_instruct.py --text "Point to the exit."
 ```
 
-Evaluate the existing generated test split:
+Evaluate the full generated dataset with the prompt-only vLLM classifier:
 
 ```bash
 python modeling/scripts/predict_llm_instruct.py \
-  --eval-path modeling/data/splits/test.csv \
+  --eval-path data_generation/data/raw/deepseek_generated_3000.csv \
   --batch-size 16 \
-  --gpu-memory-utilization 0.90
+  --gpu-memory-utilization 0.90 \
+  --max-model-len 8192
 ```
 
 For multi-GPU tensor parallel inference:
 
 ```bash
 CUDA_VISIBLE_DEVICES=0,1 python modeling/scripts/predict_llm_instruct.py \
-  --eval-path modeling/data/splits/test.csv \
+  --eval-path data_generation/data/raw/deepseek_generated_3000.csv \
   --tensor-parallel-size 2
 ```
 

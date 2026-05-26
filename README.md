@@ -4,10 +4,11 @@ This repository is for classifying whether a human utterance in a human-robot co
 
 The first milestone is broad seed data generation. See `data_generation/` for dataset files, generation scripts, and progress notes.
 
-The current branch uses a locally deployed lightweight instruct LLM with vLLM for direct classification. It no longer requires training a neural classifier head. See `modeling/` for the prompt, inference script, train/validation/test splits, and evaluation commands.
+The current branch uses a locally deployed lightweight instruct LLM with vLLM for direct classification. It no longer requires training a neural classifier head. See `modeling/` for the prompt, inference script, generated data, and evaluation commands.
 
-Current generated data uses 3000 balanced examples. The default split is 2400
-train, 300 validation, and 300 test rows.
+Current generated data uses 3000 balanced examples. For the vLLM prompt-only
+classifier, all 3000 rows can be used as evaluation data. The train/validation/
+test split is kept only for archived trained baselines.
 
 For server setup, install the full modeling stack with:
 
@@ -40,11 +41,11 @@ when the program exits:
 python modeling/scripts/predict_llm_instruct.py --timing
 ```
 
-Evaluate accuracy and latency on the existing generated test split. This writes
+Evaluate accuracy and latency on the full generated dataset. This writes
 metrics and predictions under `modeling/artifacts/llm_instruct/`:
 
 ```bash
-python modeling/scripts/predict_llm_instruct.py --eval-path modeling/data/splits/test.csv
+python modeling/scripts/predict_llm_instruct.py --eval-path data_generation/data/raw/deepseek_generated_3000.csv
 ```
 
 The default model is:

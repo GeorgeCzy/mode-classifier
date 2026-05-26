@@ -17,8 +17,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_MODEL_NAME = "Qwen/Qwen2.5-0.5B-Instruct"
 DEFAULT_PROMPT_PATH = ROOT / "modeling" / "prompts" / "llm_direct_classifier_system.md"
-DEFAULT_YESNO_PROMPT_PATH = ROOT / "modeling" / "prompts" / "llm_direct_classifier_yesno_system.md"
-DEFAULT_EVAL_PATH = ROOT / "modeling" / "data" / "splits" / "test.csv"
+DEFAULT_EVAL_PATH = ROOT / "data_generation" / "data" / "raw" / "deepseek_generated_3000.csv"
 DEFAULT_OUTPUT_DIR = ROOT / "modeling" / "artifacts" / "llm_instruct"
 VALID_LABELS = ("text", "motion prompt")
 TEXT_CUES = (
@@ -41,16 +40,12 @@ FEW_SHOT_EXAMPLES = (
     ("What is the capital of France?", "text"),
     ("How do I manage stress effectively?", "text"),
     ("Point to the exit.", "motion prompt"),
-    ("Point at your chest, then point toward the doorway.", "motion prompt"),
     ("Place the package on the table.", "motion prompt"),
     ("Can you translate hello into Spanish?", "text"),
     ("What is the difference between TCP and UDP?", "text"),
     ("Can you do a short dance?", "motion prompt"),
     ("Spin around slowly.", "motion prompt"),
-    ("Follow me down the hallway.", "motion prompt"),
-    ("Place your palm on your chest.", "motion prompt"),
     ("Can you define empathy?", "text"),
-    ("Explain neural networks in simple terms.", "text"),
     ("Show me how you would greet someone.", "motion prompt"),
     ("Use your hand to gesture come here.", "motion prompt"),
     ("Can you recommend a book for learning Python?", "text"),
@@ -60,31 +55,16 @@ FEW_SHOT_EXAMPLES = (
     ("Can you tell me a fun fact?", "text"),
     ("Can you give me directions to the library?", "text"),
     ("Can you understand multiple languages?", "text"),
-    ("Tell me a riddle.", "text"),
-    ("Suggest a few healthy breakfast options.", "text"),
-    ("I feel anxious today; can you say something encouraging?", "text"),
-    ("Define photosynthesis for a child.", "text"),
     ("Press the button.", "motion prompt"),
     ("Come here.", "motion prompt"),
-    ("Move closer and look at the display.", "motion prompt"),
     ("Stay right there.", "motion prompt"),
-    ("Remain still while I calibrate you.", "motion prompt"),
-    ("Keep your position until I come back.", "motion prompt"),
     ("Salute me formally.", "motion prompt"),
     ("Signal me when it is safe.", "motion prompt"),
-    ("Freeze in place.", "motion prompt"),
     ("Answer by shaking your head no.", "motion prompt"),
     ("Look at the screen.", "motion prompt"),
     ("Hold this for me.", "motion prompt"),
-    ("Hold this item in your hand.", "motion prompt"),
     ("Catch this.", "motion prompt"),
-    ("Demonstrate a stirring motion with your hand.", "motion prompt"),
-    ("Can you give me advice for salary negotiation?", "text"),
-    ("How should I cook a steak at home?", "text"),
-    ("Can you explain how solar power works?", "text"),
-    ("How quickly can you process visual information?", "text"),
-    ("What are safe steps for troubleshooting a laptop?", "text"),
-    ("What languages are you able to understand?", "text"),
+    ("Show me the motion for stirring a pot.", "motion prompt"),
     ("Please do not move, just explain the answer.", "text"),
 )
 
@@ -102,12 +82,6 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--model-name", default=DEFAULT_MODEL_NAME)
     parser.add_argument("--prompt-path", type=Path, default=DEFAULT_PROMPT_PATH)
-    parser.add_argument(
-        "--yesno-prompt-path",
-        type=Path,
-        default=DEFAULT_YESNO_PROMPT_PATH,
-        help="System prompt used by the optional yes/no classification mode.",
-    )
     parser.add_argument("--text", default=None, help="Single utterance to classify.")
     parser.add_argument(
         "--eval-path",
@@ -127,11 +101,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--method",
         choices=["yesno", "generate"],
-        default="generate",
+        default="yesno",
         help=(
-            "generate asks the LLM to emit text or motion prompt directly. "
-            "yesno asks whether concrete physical action is needed and maps "
-            "the answer to labels."
+            "yesno asks whether concrete physical action is needed and maps the "
+            "answer to labels; generate asks the LLM to emit a label."
         ),
     )
     parser.add_argument("--warmup", type=int, default=1)
@@ -139,7 +112,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--cache-dir", type=Path, default=None)
     parser.add_argument("--tensor-parallel-size", type=int, default=1)
     parser.add_argument("--gpu-memory-utilization", type=float, default=0.90)
-    parser.add_argument("--max-model-len", type=int, default=4096)
+    parser.add_argument("--max-model-len", type=int, default=8192)
     parser.add_argument("--enforce-eager", action="store_true")
     parser.add_argument("--seed", type=int, default=20260523)
     parser.add_argument(
@@ -224,7 +197,6 @@ def label_prompt(utterance: str) -> str:
         "answer verbally or physically act.\n"
         "Do not use the phrase 'Can you' by itself as evidence for action.\n"
         "Short imperative commands are action requests when they change the robot's body, pose, gaze, location, or object handling.\n"
-        "Direct physical commands such as follow me, hold this, stand still, freeze, point, wave, look, or put your hand are motion prompt, not ambiguous.\n"
         "If the utterance is ambiguous or could be handled either verbally or physically, choose text.\n"
         f"Text cues: {TEXT_CUES}.\n"
         f"Motion cues: {MOTION_CUES}.\n"
@@ -236,12 +208,15 @@ def label_prompt(utterance: str) -> str:
 
 def yesno_prompt(utterance: str) -> str:
     return (
-        "Does this utterance ask the humanoid robot to perform or change a "
-        "concrete physical action?\n"
-        "Answer YES for direct physical commands such as point, follow, come "
-        "here, hold, stand still, freeze, wave, look, put your hand, or move. "
-        "Answer NO for speech/text, information, advice, capability questions, "
-        "or ambiguous cases.\n\n"
+        "Classify this human utterance addressed to a humanoid robot.\n"
+        "Does the utterance ask the robot to perform or change a concrete physical action?\n"
+        "Answer YES for motion prompt. Answer NO for text.\n"
+        "Do not use the phrase 'Can you' by itself as evidence for action.\n"
+        "Short imperative commands are YES when they change the robot's body, pose, gaze, location, or object handling.\n"
+        "If the utterance is ambiguous or could be handled either verbally or physically, answer NO.\n"
+        f"Text cues: {TEXT_CUES}.\n"
+        f"Motion cues: {MOTION_CUES}.\n"
+        "Return only YES or NO.\n\n"
         f"Utterance: {utterance}\n"
         "Answer:"
     )
@@ -263,21 +238,6 @@ def user_prompt_for_mode(
     return label_prompt(utterance)
 
 
-def example_prompt_for_mode(
-    utterance: str,
-    *,
-    yesno_mode: bool,
-) -> str:
-    if yesno_mode:
-        return (
-            "Does this utterance clearly ask for concrete robot action? "
-            "Answer YES for motion prompt, NO for text or ambiguous.\n"
-            f"Utterance: {utterance}\n"
-            "Answer:"
-        )
-    return f"Utterance: {utterance}\nLabel:"
-
-
 def build_messages(
     system_prompt: str,
     utterance: str,
@@ -289,7 +249,7 @@ def build_messages(
         messages.append(
             {
                 "role": "user",
-                "content": example_prompt_for_mode(
+                "content": user_prompt_for_mode(
                     example_text,
                     yesno_mode=yesno_mode,
                 ),
@@ -367,49 +327,6 @@ def render_chat_prompt(
         tokenize=False,
         add_generation_prompt=True,
     )
-
-
-def count_prompt_tokens(tokenizer, prompt: str) -> int:
-    return len(tokenizer.encode(prompt, add_special_tokens=False))
-
-
-def ensure_prompt_fits_model(
-    *,
-    tokenizer,
-    system_prompt: str,
-    utterances: list[str],
-    method: str,
-    max_model_len: int | None,
-    max_new_tokens: int,
-) -> None:
-    if not max_model_len or not utterances:
-        return
-
-    yesno_mode = method == "yesno"
-    longest_length = 0
-    longest_utterance = ""
-    for utterance in utterances:
-        prompt = render_chat_prompt(
-            tokenizer,
-            system_prompt,
-            utterance,
-            yesno_mode=yesno_mode,
-        )
-        length = count_prompt_tokens(tokenizer, prompt)
-        if length > longest_length:
-            longest_length = length
-            longest_utterance = utterance
-
-    budget = max_model_len - max_new_tokens
-    if longest_length > budget:
-        raise ValueError(
-            "Rendered prompt is too long for the configured model context. "
-            f"Longest prompt has {longest_length} tokens, while the usable "
-            f"budget is {budget} tokens from --max-model-len {max_model_len} "
-            f"minus --max-new-tokens {max_new_tokens}. Increase "
-            "--max-model-len or reduce the prompt/few-shot examples. "
-            f"Longest utterance: {longest_utterance!r}"
-        )
 
 
 def generate_prompts(llm, sampling_params, prompts: list[str]) -> tuple[list[str], float]:
@@ -559,14 +476,6 @@ def run_eval(args: argparse.Namespace, tokenizer, llm, sampling_params, system_p
     rows = read_eval_rows(eval_path, args.limit)
     if args.batch_size < 1:
         raise ValueError("--batch-size must be at least 1")
-    ensure_prompt_fits_model(
-        tokenizer=tokenizer,
-        system_prompt=system_prompt,
-        utterances=[row["utterance"] for row in rows],
-        method=args.method,
-        max_model_len=args.max_model_len,
-        max_new_tokens=args.max_new_tokens,
-    )
     if args.warmup > 0 and rows:
         for row in rows[: args.warmup]:
             classify(
@@ -634,14 +543,6 @@ def run_interactive(args: argparse.Namespace, tokenizer, llm, sampling_params, s
             break
         if not text:
             break
-        ensure_prompt_fits_model(
-            tokenizer=tokenizer,
-            system_prompt=system_prompt,
-            utterances=[text],
-            method=args.method,
-            max_model_len=args.max_model_len,
-            max_new_tokens=args.max_new_tokens,
-        )
         request_start = time.perf_counter()
         prediction = classify(
             tokenizer=tokenizer,
@@ -668,9 +569,7 @@ def run_interactive(args: argparse.Namespace, tokenizer, llm, sampling_params, s
 
 def main() -> None:
     args = parse_args()
-    label_system_prompt = read_prompt(args.prompt_path)
-    yesno_system_prompt = read_prompt(args.yesno_prompt_path)
-    system_prompt = yesno_system_prompt if args.method == "yesno" else label_system_prompt
+    system_prompt = read_prompt(args.prompt_path)
     if args.print_prompt:
         print(system_prompt)
         return
@@ -684,14 +583,6 @@ def main() -> None:
         run_eval(args, tokenizer, llm, sampling_params, system_prompt, load_seconds)
         return
     if args.text:
-        ensure_prompt_fits_model(
-            tokenizer=tokenizer,
-            system_prompt=system_prompt,
-            utterances=[args.text],
-            method=args.method,
-            max_model_len=args.max_model_len,
-            max_new_tokens=args.max_new_tokens,
-        )
         request_start = time.perf_counter()
         prediction = classify(
             tokenizer=tokenizer,

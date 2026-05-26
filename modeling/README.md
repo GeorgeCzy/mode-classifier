@@ -16,12 +16,6 @@ The prompt is stored in:
 modeling/prompts/llm_direct_classifier_system.md
 ```
 
-The optional yes/no mode uses:
-
-```text
-modeling/prompts/llm_direct_classifier_yesno_system.md
-```
-
 ## What vLLM Does Here
 
 vLLM is the runtime that serves the downloaded instruct model for inference. In
@@ -98,62 +92,67 @@ Function: keeps the same interactive input/output flow, but also prints
 `average_request_elapsed_seconds`, the average end-to-end time from receiving
 input to completing the LLM classification.
 
-Generated-label mode:
+Default yes/no mode:
+
+```bash
+python modeling/scripts/predict_llm_instruct.py --text "Point to the exit."
+```
+
+Function: asks the model whether concrete physical action is required and maps
+`NO` to `text` and `YES` to `motion prompt`. This is the default method and
+matches the earlier prompt version that reached 0.84 accuracy on the generated
+200-row test split.
+
+Optional generated-label mode:
 
 ```bash
 python modeling/scripts/predict_llm_instruct.py --method generate --text "Point to the exit."
 ```
 
-Function: asks the model to emit `text` or `motion prompt` directly. This is
-also the default method. The optional `yesno` method asks whether concrete
-physical action is required and maps `NO` to `text` and `YES` to
-`motion prompt`.
+Function: asks the model to emit `text` or `motion prompt` directly.
 
-The classifier is few-shot, not zero-shot. Each request includes the active
-system prompt plus curated user/assistant examples covering ordinary text
-questions, capability questions, short motion commands, gesture requests, and
-negated motion requests. The examples use a compact utterance/answer format so
-the rendered prompt fits the default 4096-token context. Direct generated-label
-classification is the default because it has been more stable for the 0.5B
-model than the yes/no formulation.
+The classifier is few-shot, not zero-shot. Each request includes the system
+prompt plus curated user/assistant examples covering ordinary text questions,
+capability questions, short motion commands, gesture requests, and negated
+motion requests. This version intentionally restores the fuller prompt structure
+from the previous 0.84-accuracy run, so the default `--max-model-len` is 8192.
 
-Full test-set evaluation:
+Full generated-dataset evaluation:
 
 ```bash
 python modeling/scripts/predict_llm_instruct.py \
-  --eval-path modeling/data/splits/test.csv
+  --eval-path data_generation/data/raw/deepseek_generated_3000.csv
 ```
 
-Function: runs the classifier on the generated test split, prints progress,
-computes accuracy/confusion matrix/latency metrics, and writes outputs under
-`modeling/artifacts/llm_instruct/`.
+Function: runs the prompt-only vLLM classifier on all 3000 generated examples,
+prints progress, computes accuracy/confusion matrix/latency metrics, and writes
+outputs under `modeling/artifacts/llm_instruct/`.
 
 Quick 20-row smoke evaluation:
 
 ```bash
 python modeling/scripts/predict_llm_instruct.py \
-  --eval-path modeling/data/splits/test.csv \
+  --eval-path data_generation/data/raw/deepseek_generated_3000.csv \
   --limit 20
 ```
 
 Function: verifies the inference path on 20 test examples without running the
-full 300-row evaluation.
+full 3000-row evaluation.
 
 Evaluation with explicit vLLM options:
 
 ```bash
 python modeling/scripts/predict_llm_instruct.py \
-  --eval-path modeling/data/splits/test.csv \
+  --eval-path data_generation/data/raw/deepseek_generated_3000.csv \
   --batch-size 16 \
   --tensor-parallel-size 1 \
   --gpu-memory-utilization 0.90 \
-  --max-model-len 4096
+  --max-model-len 8192
 ```
 
 Function: runs evaluation while controlling batch size, tensor parallelism, and
-GPU memory utilization. The default `--max-model-len` is 4096 because this
-classification prompt is short; this avoids allocating a 32768-token KV cache
-for a binary classification task.
+GPU memory utilization. The default `--max-model-len` is 8192 because the
+restored fuller few-shot prompt is longer than the compact prompt variants.
 
 The first run downloads the model from Hugging Face and later runs reuse the
 local cache.
@@ -174,7 +173,7 @@ modeling/reports/qwen2_5_0_5b_instruct_direct.md
 
 ## Data
 
-Default input:
+Default vLLM evaluation input:
 
 ```text
 data_generation/data/raw/deepseek_generated_3000.csv
@@ -190,6 +189,10 @@ Legacy dataset labels:
 
 - `chat`
 - `motion_query`
+
+The stratified split files under `modeling/data/splits/` are retained for the
+archived TF-IDF and embedding-head baselines. The vLLM classifier does not train
+on those splits.
 
 ## Archived Baselines
 

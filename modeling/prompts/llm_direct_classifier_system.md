@@ -44,9 +44,6 @@ Decision rules:
    come here, stay, bring, carry, hold, catch, spin, wave, gesture, use your
    hand, nod, shake your head, salute, signal, look at, demonstrate, imitate,
    follow, turn, walk, move, stop moving, back away, and stay where you are.
-   Direct physical commands such as "follow me", "hold this", "stand still",
-   "freeze", "put your hand over your heart", and "look at the screen" are not
-   ambiguous; classify them as `motion prompt`.
 4. Commands that control the robot's physical state are `motion prompt`, such as
    "Stop moving", "Back away", "Stay where you are", or "Turn toward me".
 5. If the user explicitly asks the robot not to move and only wants an
@@ -103,15 +100,6 @@ Utterance: "Answer by shaking your head no."
 Label: motion prompt
 
 Utterance: "Look at the screen."
-Label: motion prompt
-
-Utterance: "Follow me down the hallway."
-Label: motion prompt
-
-Utterance: "Hold this item in your hand."
-Label: motion prompt
-
-Utterance: "Remain still while I calibrate you."
 Label: motion prompt
 
 Utterance: "Please do not move, just explain the answer."
